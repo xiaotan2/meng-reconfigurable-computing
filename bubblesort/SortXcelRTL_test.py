@@ -13,11 +13,11 @@ from pclib.test  import mk_test_case_table, run_sim
 from pclib.test  import TestSource, TestSink
 
 #from pclib.test.TestMemoryFuture import TestMemory
-from pymtl_polyhs_master.xmem.TestMemoryOpaque         import TestMemory
+from xmem.TestMemoryOpaque         import TestMemory
 from BubbleSortRTL import *
 
-from pymtl_polyhs_master.xmem.MemMsgFuture             import *
-from pymtl_polyhs_master.xcel.XcelMsg                  import *
+from xmem.MemMsgFuture             import *
+from xcel.XcelMsg                  import *
 
 #-------------------------------------------------------------------------
 # TestHarness
@@ -60,6 +60,7 @@ class TestHarness (Model):
   def line_trace( s ):
     return s.src.line_trace()  + " > " + \
            s.mem.line_trace()  + " > " + \
+           s.xcel.line_trace() + " > " + \
            s.sink.line_trace()
   #  return s.xcel.line_trace()
 
@@ -169,7 +170,7 @@ def run_test( xcel, test_params, test_verilog=False ):# dump_vcd, test_verilog=F
 
   # Run the test
 
-  run_sim( th, max_cycles=2000 )  # dump_vcd, max_cycles=20000 )
+  run_sim( th, max_cycles=20000 )  # dump_vcd, max_cycles=20000 )
 
   # Retrieve data from test memory
 

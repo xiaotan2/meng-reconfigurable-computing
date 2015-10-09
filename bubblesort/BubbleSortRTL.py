@@ -6,8 +6,8 @@ from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl   import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from pclib.fl   import ListMemPortAdapter
 
-from pymtl_polyhs_master.xcel.XcelMsg      import XcelReqMsg, XcelRespMsg
-from pymtl_polyhs_master.xmem.MemMsgFuture import MemMsg, MemReqMsg, MemRespMsg
+from xcel.XcelMsg      import XcelReqMsg, XcelRespMsg
+from xmem.MemMsgFuture import MemMsg, MemReqMsg, MemRespMsg
 
 # Constant
 
@@ -79,13 +79,21 @@ class BubbleSortRTL( Model ) :
       s.memreq.msg.len.value = 0
 
   def line_trace( s ):
-    xcel_req_str = "a{}$d{}$t{}".format(s.xcelreq_queue.deq.msg.raddr, s.xcelreq_queue.deq.msg.data, s.xcelreq_queue.deq.msg.type_)
-    xcel_resp_str = "d{}$t{}".format(s.xcelresp.msg.data, s.xcelresp.msg.type_)
-    read_req_str = "r_req:v{}|r{}|a{}|t{}".format(s.memreq_queue.enq.val, s.memreq_queue.enq.rdy, s.memreq_queue.enq.msg.addr, s.memreq_queue.enq.msg.type_)
-    read_resp_str = "r_resp:v{}|r{}|d{}".format(s.memresp.val, s.memresp.rdy, s.memresp.msg.data)
-    write_req_str = "w_req:a{}|d{}".format(s.memreq_queue.enq.msg.addr, s.memreq_queue.enq.msg.data)
-    debug_str = "debug{}|{}|{}|{}|{}".format(s.ctrl.state.out, s.ctrl.counteri, s.ctrl.countero, s.dpath.reg_fir, s.dpath.reg_sec)
-    mux_str = "m1{}|m2{}|m3{}|m4{}|m5{}".format(s.dpath.reg_mux1_out, s.dpath.reg_mux2_out, s.dpath.reg_mux3_out, s.dpath.reg_mux4_out, s.dpath.reg_mux5_out)
+
+    xcel_req_str = " x_req:v{}$r{}$a{}$d{}$t{}".format(s.xcelreq.val, s.xcelreq.rdy, s.xcelreq_queue.deq.msg.raddr, s.xcelreq_queue.deq.msg.data, s.xcelreq_queue.deq.msg.type_)
+
+    xcel_resp_str = " x_resp:v{}$r{}$d{}$t{}".format(s.xcelresp.val, s.xcelresp.rdy, s.xcelresp.msg.data, s.xcelresp.msg.type_)
+
+    read_req_str = " r_req:v{}|r{}|a{}|t{}".format(s.memreq_queue.enq.val, s.memreq_queue.enq.rdy, s.memreq_queue.enq.msg.addr, s.memreq_queue.enq.msg.type_)
+
+    read_resp_str = " r_resp:v{}|r{}|d{}".format(s.memresp.val, s.memresp.rdy, s.memresp.msg.data)
+
+    write_req_str = " w_req:a{}|d{}".format(s.memreq_queue.enq.msg.addr, s.memreq_queue.enq.msg.data)
+
+    debug_str = " debug{}|{}|{}".format(s.ctrl.state.out, s.ctrl.counteri, s.ctrl.countero)
+
+    mux_str = " m1{}|m2{}|m3{}|m4{}|m5{}".format(s.dpath.reg_mux1_out, s.dpath.reg_mux2_out, s.dpath.reg_mux3_out, s.dpath.reg_mux4_out, s.dpath.reg_mux5_out)
+
     mem_inter = (read_req_str + "$$" + read_resp_str + "$$" + write_req_str) 
     line_str = (debug_str)
     return line_str
@@ -235,7 +243,7 @@ class BSControlUnitRTL( Model ) :
     s.reg_initial = Wire( Bits(1) )
     s.reg_end = Wire ( Bits(1) )
     s.reg_reading = Wire ( Bits(1) )
-    s.go = Wire ( Bits(1) )
+    s.start_sorting = Wire ( Bits(1) )
     s.done = Wire ( Bits(1) )
 
     # State Elements
@@ -290,7 +298,7 @@ class BSControlUnitRTL( Model ) :
 
       # Transition out of SOURCE state
       if ( curr_state == s.STATE_SOURCE ):
-        if (s.go):
+        if (s.start_sorting and s.xcelreq_rdy):
           next_state = s.STATE_INIT
         elif(s.done):
           next_state = s.STATE_IDLE
@@ -352,8 +360,8 @@ class BSControlUnitRTL( Model ) :
         s.reg_reading.value        = 0
         s.counteri.value           = 0
         s.countero.value           = 0
+        s.start_sorting.value      = 0
         s.xcelreq_rdy.value        = 1
-        # xcelerator is done sorting
 
         # when req valid, read the first value
         if(s.xcelreq_val):
@@ -366,23 +374,18 @@ class BSControlUnitRTL( Model ) :
       # In SOURCE state
       if (current_state == s.STATE_SOURCE):
         s.xcelreq_rdy.value = s.xcelresp_rdy
-        s.xcelresp_val.value = 1
+        s.xcelresp_val.value = s.xcelreq_val
 
         if (s.xcelreq_val):
           if (s.xcelreq_msgtype == XcelReqMsg.TYPE_WRITE):
             if (s.xcelreq_msgaddr == 0):
-              s.go.value          = 1
+              s.start_sorting.value     = 1
             elif (s.xcelreq_msgaddr == 2):
               s.size.value = s.xcelreq_msgdata
-
             # Send xcel response message
             s.xcelresp_msgtype.value = XcelRespMsg.TYPE_WRITE
 
-          else:
-
-            # Send xcel response message, obviously you only want to
-            # send the response message when accelerator is done
-
+          elif (s.xcelreq_msgtype == XcelReqMsg.TYPE_READ):
             s.xcelresp_msgtype.value = XcelRespMsg.TYPE_READ
             s.xcelresp_msgdata.value  = 1
             s.done.value = 0
@@ -448,9 +451,6 @@ class BSControlUnitRTL( Model ) :
           s.memreq_val.value        = 0
           s.memreq_msgtype.value    = MemReqMsg.TYPE_READ
           s.done.value = 1
-          #s.xcelresp_val.value      = 1
-          #s.xcelresp_msgtype.value = XcelRespMsg.TYPE_READ
-          #s.xcelresp_msgdata.value  = 1
         else:
           s.reg_end.value = 0
           s.memreq_val.value = 0
