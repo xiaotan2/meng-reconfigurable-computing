@@ -13,11 +13,11 @@ from pclib.test  import mk_test_case_table, run_sim
 from pclib.test  import TestSource, TestSink
 
 #from pclib.test.TestMemoryFuture import TestMemory
-from polymem.TestMemoryOpaque         import TestMemory
-from SortXcelFL  import SortXcelFL
+from pymtl_polyhs_master.xmem.TestMemoryOpaque         import TestMemory
+from BubbleSortRTL import *
 
-from polymem.MemMsgFuture  import *
-from xcel.XcelMsg       import *
+from pymtl_polyhs_master.xmem.MemMsgFuture             import *
+from pymtl_polyhs_master.xcel.XcelMsg                  import *
 
 #-------------------------------------------------------------------------
 # TestHarness
@@ -27,7 +27,8 @@ class TestHarness (Model):
 
   def __init__( s, xcel, src_msgs, sink_msgs,
                 stall_prob, latency, src_delay, sink_delay,
-                dump_vcd=False, test_verilog=False ):
+                test_verilog=False): 
+             #  dump_vcd=False, test_verilog=False ):
 
     # Instantiate models
 
@@ -38,8 +39,8 @@ class TestHarness (Model):
 
     # Dump VCD
 
-    if dump_vcd:
-      s.xcel.vcd_file = dump_vcd
+   # if dump_vcd:
+    #  s.xcel.vcd_file = dump_vcd
 
     # Translation
 
@@ -58,9 +59,9 @@ class TestHarness (Model):
 
   def line_trace( s ):
     return s.src.line_trace()  + " > " + \
-           s.xcel.line_trace() + " | " + \
            s.mem.line_trace()  + " > " + \
            s.sink.line_trace()
+  #  return s.xcel.line_trace()
 
 #-------------------------------------------------------------------------
 # make messages
@@ -141,7 +142,7 @@ test_case_table = mk_test_case_table([
 # run_test
 #-------------------------------------------------------------------------
 
-def run_test( xcel, test_params, dump_vcd, test_verilog=False ):
+def run_test( xcel, test_params, test_verilog=False ):# dump_vcd, test_verilog=False ):
 
   # Convert test data into byte array
 
@@ -159,7 +160,8 @@ def run_test( xcel, test_params, dump_vcd, test_verilog=False ):
   th = TestHarness( xcel, xreqs, xresps,
                     test_params.stall, test_params.lat,
                     test_params.src, test_params.sink,
-                    dump_vcd, test_verilog )
+                    test_verilog ) 
+                   #dump_vcd, test_verilog )
 
   # Load the data into the test memory
 
@@ -167,7 +169,7 @@ def run_test( xcel, test_params, dump_vcd, test_verilog=False ):
 
   # Run the test
 
-  run_sim( th, dump_vcd, max_cycles=20000 )
+  run_sim( th, max_cycles=2000 )  # dump_vcd, max_cycles=20000 )
 
   # Retrieve data from test memory
 
@@ -186,6 +188,6 @@ def run_test( xcel, test_params, dump_vcd, test_verilog=False ):
 #-------------------------------------------------------------------------
 
 @pytest.mark.parametrize( **test_case_table )
-def test( test_params, dump_vcd ):
-  run_test( SortXcelFL(), test_params, dump_vcd )
+def test( test_params ): #, dump_vcd ):
+  run_test( BubbleSortRTL(), test_params ) #, dump_vcd )
 
