@@ -1,0 +1,52 @@
+/* config.h.in.  Generated from configure.ac by autoheader.  */
+
+/* Define if we should include subproject ex_gcd */
+#undef HAVE_EX_GCD
+
+/* Define if we should include subproject ex_sort */
+#undef HAVE_EX_SORT
+
+/* Define if we should include subproject polydsu */
+#undef HAVE_POLYDSU
+
+/* Define if we should include subproject polydsu_bintree */
+#undef HAVE_POLYDSU_BINTREE
+
+/* Define if we should include subproject polydsu_graph */
+#undef HAVE_POLYDSU_GRAPH
+
+/* Define if we should include subproject polydsu_hashmap */
+#undef HAVE_POLYDSU_HASHMAP
+
+/* Define if we should include subproject polydsu_list */
+#undef HAVE_POLYDSU_LIST
+
+/* Define if we should include subproject polydsu_rbtree */
+#undef HAVE_POLYDSU_RBTREE
+
+/* Define if we should include subproject utst */
+#undef HAVE_UTST
+
+/* Define if we should include subproject xcel */
+#undef HAVE_XCEL
+
+/* Define if we should include subproject xmem */
+#undef HAVE_XMEM
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION

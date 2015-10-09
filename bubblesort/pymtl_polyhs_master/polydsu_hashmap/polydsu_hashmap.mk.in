@@ -1,0 +1,25 @@
+#=========================================================================
+# Modular C++ Build System Subproject Makefile Fragment
+#=========================================================================
+# Please read the documenation in 'mcppbs-uguide.txt' for more details
+# on how the Modular C++ Build System works.
+
+polydsu_hashmap_intdeps  = @polydsu_hashmap_intdeps@
+polydsu_hashmap_cppflags = @polydsu_hashmap_cppflags@
+polydsu_hashmap_ldflags  = @polydsu_hashmap_ldflags@
+polydsu_hashmap_libs     = @polydsu_hashmap_libs@
+
+polydsu_hashmap_hdrs = \
+	polydsu_hashmap/HashMapEntryProxy.h \
+	polydsu_hashmap/HashMapInsertHLS.h \
+
+polydsu_hashmap_inls = \
+
+polydsu_hashmap_srcs = \
+	polydsu_hashmap/HashMapInsertHLS.cc \
+
+polydsu_hashmap_test_srcs = \
+	polydsu_hashmap/HashMapInsertHLS.t.cc \
+
+polydsu_hashmap_hls_srcs = \
+	polydsu_hashmap/HashMapInsertHLS.cc \
