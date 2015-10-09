@@ -1,0 +1,27 @@
+#=========================================================================
+# Modular C++ Build System Subproject Makefile Fragment
+#=========================================================================
+# Please read the documenation in 'mcppbs-uguide.txt' for more details
+# on how the Modular C++ Build System works.
+
+polydsu_intdeps  = @polydsu_intdeps@
+polydsu_cppflags = @polydsu_cppflags@
+polydsu_ldflags  = @polydsu_ldflags@
+polydsu_libs     = @polydsu_libs@
+
+polydsu_hdrs = \
+  polydsu/PolyDsuMsg.h \
+  polydsu/PolyDsuCommon.h \
+  polydsu/PolyDsuConfigHLS.h \
+
+polydsu_inls = \
+
+polydsu_srcs = \
+  polydsu/PolyDsuConfigHLS.cc \
+
+polydsu_test_srcs = \
+  polydsu/PolyDsuMsg.t.cc \
+
+polydsu_hls_srcs = \
+  polydsu/PolyDsuConfigHLS.cc \
+

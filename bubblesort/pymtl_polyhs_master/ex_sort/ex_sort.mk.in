@@ -1,0 +1,25 @@
+#=========================================================================
+# Modular C++ Build System Subproject Makefile Fragment
+#=========================================================================
+# Please read the documenation in 'mcppbs-uguide.txt' for more details
+# on how the Modular C++ Build System works.
+
+ex_sort_intdeps  = @ex_sort_intdeps@
+ex_sort_cppflags = @ex_sort_cppflags@
+ex_sort_ldflags  = @ex_sort_ldflags@
+ex_sort_libs     = @ex_sort_libs@
+
+ex_sort_hdrs = \
+  ex_sort/SortXcelHLS.h \
+
+ex_sort_inls = \
+
+ex_sort_srcs = \
+  ex_sort/SortXcelHLS.cc \
+
+ex_sort_test_srcs = \
+  ex_sort/SortXcelHLS.t.cc \
+
+ex_sort_hls_srcs = \
+  ex_sort/SortXcelHLS.cc \
+
