@@ -34,7 +34,7 @@ class TestHarness (Model):
 
     s.src  = TestSource ( XcelReqMsg(),  src_msgs,  src_delay  )
     s.xcel = xcel
-    s.mem  = TestMemory ( MemMsg(8,32,32), 1, stall_prob, latency )
+    s.mem  = TestMemory ( MemMsg(8,32,32), 2, stall_prob, latency )
     s.sink = TestSink   ( XcelRespMsg(), sink_msgs, sink_delay )
 
     # Dump VCD
