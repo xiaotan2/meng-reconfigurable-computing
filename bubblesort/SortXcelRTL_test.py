@@ -49,10 +49,12 @@ class TestHarness (Model):
 
     # Connect
 
-    s.connect( s.src.out,       s.xcel.xcelreq )
-    s.connect( s.xcel.memreq,   s.mem.reqs[0]  )
-    s.connect( s.xcel.memresp,  s.mem.resps[0] )
-    s.connect( s.xcel.xcelresp, s.sink.in_     )
+    s.connect( s.src.out,         s.xcel.xcelreq )
+    s.connect( s.xcel.memreq,     s.mem.reqs[0]  )
+    s.connect( s.xcel.memresp,    s.mem.resps[0] )
+    s.connect( s.xcel.duamemreq,  s.mem.reqs[1]  )
+    s.connect( s.xcel.duamemresp, s.mem.resps[1] )
+    s.connect( s.xcel.xcelresp,   s.sink.in_     )
 
   def done( s ):
     return s.src.done and s.sink.done
@@ -107,6 +109,8 @@ def gen_xcel_protocol_msgs( size ):
 # Test Cases
 #-------------------------------------------------------------------------
 
+super_mini    = [ 0x21, 0x14 ]
+small_mini    = [ 0x21, 0x14, 0x3 ]
 mini          = [ 0x21, 0x14, 0x42, 0x03 ]
 small_data    = [ random.randint(0,0xffff)     for i in xrange(32) ]
 large_data    = [ random.randint(0,0x7fffffff) for i in xrange(32) ]
@@ -121,6 +125,8 @@ test_case_table = mk_test_case_table([
                          #                delays   test mem
                          #                -------- ---------
   (                      "data            src sink stall lat"),
+  [ "super_mini",         super_mini,     0,  0,   0,    0   ],
+  [ "small_mini",         small_mini,     0,  0,   0,    0   ],
   [ "mini",               mini,           0,  0,   0,    0   ],
   [ "mini_0_0_4",         mini,           0,  0,   0.5,  4   ],
   [ "mini_0_8_0",         mini,           0,  8,   0.5,  0   ],
