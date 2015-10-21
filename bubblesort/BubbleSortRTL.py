@@ -372,7 +372,7 @@ class BSControlUnitRTL( Model ) :
 
       # Transistions out of WW state
       if ( curr_state == s.STATE_WW ):
-        if( s.memresp_val and s.dualmemresp_val and
+        if( s.memresp_rdy and s.dualmemresp_rdy and
             s.memreq_rdy and s.dualmemreq_rdy):
           next_state           = s.STATE_DONE
 
