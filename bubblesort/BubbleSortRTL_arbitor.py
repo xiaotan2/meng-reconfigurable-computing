@@ -524,3 +524,72 @@ class BSControlUnitRTL( Model ) :
         else:
           s.reg_ww.value                 = 0
           s.reg_rrw.value                = 0
+    
+
+class BSArbiter ( Model ) :
+
+  # Constructor
+
+  def __init__( s, mem_msg = MemMsg( 8, 32, 32 ) ):
+
+    # Interface
+
+    s.memreq           = OutValRdyBundle  ( mem_msg.req()  )
+    s.memresp          = InValRdyBundle ( mem_msg.resp() )
+    
+    s.xcelreq            = InValRdyBundle ( XcelReqMsg() )
+    s.xcelresp           = OutValRdyBundle  ( XcelRespMsg() )
+
+    s.duaxcelreq         = InValRdyBundle ( XcelReqMsg() )
+    s.duaxcelresp        = OutValRdyBundle  ( XcelRespMsg() )
+
+    s.req_reg_out = InValRdyBundle( XcelReqMsg() );
+    
+    s.sel         = Wire(1);
+    
+
+    @s.combinational
+    def comb_logic():
+      if s.sel:
+        s.memreq = s.req_reg_out
+      else:
+        s.memreq = s.duaxcelreq
+
+      s.duaxcelresp = s.memresp
+   
+    @s.tick_rtl
+    def updatRegister():
+      if s.reset:
+        s.req_reg_out = 0
+        s.resp_reg_out = 0
+      else:
+        s.reg_reg_out = s.xcelreq
+        s.resp_reg_out = s.memresp
+
+    // control unit
+    @s.combinational
+    def state_transitions():
+      curr_state = s.state.out
+      next_state = s.state.out
+
+      if ( curr_state == s.STATE0 ):
+        if ( s.memresp.rdy ):
+          next_state = s.STATE1
+      
+      if ( curr_state == s.STATE1 ):
+        if ( s.memresp.rdy ):
+          next_state = s.STATE0
+      s.state.in_.value = next_state
+
+    
+    @s.combinational
+    def state_outputs():
+      current_state = s.state.out
+      sel = 0
+      if ( current_state == s.STATE0 ):
+        s.sel = 0
+      
+      if ( current_state == s.STATE1 ):
+        s.sel = 1
+
+    
