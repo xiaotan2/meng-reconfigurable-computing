@@ -1,1 +1,20 @@
-{}
+{
+  "SortXcelRTL_arbiter_test.py::test[large_data]": true, 
+  "SortXcelRTL_arbiter_test.py::test[mini]": true, 
+  "SortXcelRTL_arbiter_test.py::test[mini_0_0_4]": true, 
+  "SortXcelRTL_arbiter_test.py::test[mini_0_8_0]": true, 
+  "SortXcelRTL_arbiter_test.py::test[mini_0_8_4]": true, 
+  "SortXcelRTL_arbiter_test.py::test[mini_8_0_0]": true, 
+  "SortXcelRTL_arbiter_test.py::test[mini_8_0_4]": true, 
+  "SortXcelRTL_arbiter_test.py::test[mini_8_8_0]": true, 
+  "SortXcelRTL_arbiter_test.py::test[mini_8_8_4]": true, 
+  "SortXcelRTL_arbiter_test.py::test[mini_delay_x4]": true, 
+  "SortXcelRTL_arbiter_test.py::test[small_data]": true, 
+  "SortXcelRTL_arbiter_test.py::test[small_data_0x0x4]": true, 
+  "SortXcelRTL_arbiter_test.py::test[small_data_3x14x0]": true, 
+  "SortXcelRTL_arbiter_test.py::test[small_data_3x14x4]": true, 
+  "SortXcelRTL_arbiter_test.py::test[small_mini]": true, 
+  "SortXcelRTL_arbiter_test.py::test[sort_fwd_data]": true, 
+  "SortXcelRTL_arbiter_test.py::test[sort_rev_data]": true, 
+  "SortXcelRTL_arbiter_test.py::test[super_mini]": true
+}
