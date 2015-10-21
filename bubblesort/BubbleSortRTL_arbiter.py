@@ -126,7 +126,7 @@ class BSArbiter ( Model ) :
           next_state = s.STATE_SecReq
       
       if ( curr_state == s.STATE_SecReq ):
-        if ( s.reg_req_rdy and s.memresp.rdy ):
+        if ( s.memreq.rdy and s.memresp.rdy ):
           next_state = s.STATE_FirReq
 
       s.state.in_.value = next_state
