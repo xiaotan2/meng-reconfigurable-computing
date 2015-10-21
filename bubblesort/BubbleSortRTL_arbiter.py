@@ -118,11 +118,11 @@ class BSArbiter ( Model ) :
       next_state = s.state.out
 
       if ( curr_state == s.STATE_FirReq ):
-        if ( s.memresp.rdy ):
+        if ( s.memreq.rdy && s.memresp.rdy ):
           next_state = s.STATE_SecReq
       
       if ( curr_state == s.STATE_SecReq ):
-        if ( s.memresp.rdy ):
+        if ( s.reg_req_rdy && s.memresp.rdy ):
           next_state = s.STATE_FirReq
 
       s.state.in_.value = next_state
