@@ -54,7 +54,8 @@ class BSArbiter ( Model ) :
     # States
     s.STATE_FirReq        = 0
     s.STATE_FirRespSecReq = 1
-    s.STATE_SecResp       = 2
+    s.STATE_SecRespFirReq = 2
+    s.STATE_SecResp       = 3
     #--------------------------------------------------------------
     # Data path
     #--------------------------------------------------------------
@@ -135,12 +136,18 @@ class BSArbiter ( Model ) :
           next_state = s.STATE_FirRespSecReq
       
       if ( curr_state == s.STATE_FirRespSecReq ):
-        if ( s.memresp.val and s.memreq.rdy and s.duaxcelresp.rdy ):
+        if ( s.memresp.val and s.duaxcelresp.rdy and s.memreq.rdy and s.reg1_req_val):
 #        ( s.xcelreq.val and s.memreq.rdy and s.memresp.val and s.duaxcelresp.rdy ):
           next_state = s.STATE_SecResp
-      
+
+      if ( curr_state == s.STATE_SecRespFirReq ):
+        if ( s.memresp.val and s.reg1_resp_rdy and s.memreq.rdy and s.duaxcelreq.val ):
+          next_state = s.STATE_FirRespSecReq
+        elif ( s.memresp.val and s.reg1_resp_rdy ):
+          next_state = s.STATE_SecResp
+
       if ( curr_state == s.STATE_SecResp ):
-        if ( s.memresp.val ):
+        if ( s.memresp.val and s.reg1_resp_rdy):
 #        ( s.memresp.val and s.xcelresp.rdy ):
           next_state = s.STATE_FirReq
 
@@ -164,6 +171,10 @@ class BSArbiter ( Model ) :
         s.req_sel.value = 1
         s.arbitor_rdy.value = 0
       
+      if ( current_state == s.STATE_SecRespFirReq ):
+        s.req_sel.value = 0
+        s.arbitor_rdy.value = 0
+      
       if ( current_state == s.STATE_SecResp ):
         s.req_sel.value = 1
         s.arbitor_rdy.value = 0
@@ -183,12 +194,13 @@ class BSArbiter ( Model ) :
                             s.duaxcelreq.msg.data,
                             s.duaxcelreq.msg.type_, s.req_sel.value, s.state.out)
 
-    state_trans_str  = " x_state:{}s1<{}|{}>s2<{}|{}|{}|{}>s3<{}|{}>bubble_cond:<{}|{}>".format(
+    state_trans_str  = " x_state:{}s0<{}|{}>s1<{}|{}|{}|{}>s2<{}|{}|{}|{}>s3<{}|{}>bubble_cond:<{}|{}>".format(
                             s.state.out,
-                            s.duaxcelreq.val, s.memreq.rdy,
-                            s.duaxcelresp.rdy, s.memresp.val, s.xcelreq.val, s.memreq.rdy,
-                            s.xcelresp.rdy, s.memresp.val,
-                            s.xcelreq.rdy, s.duaxcelreq.rdy)
+                            s.duaxcelreq.val, s.memreq.rdy, 
+                            s.duaxcelresp.rdy, s.memresp.val, s.reg1_req_val, s.memreq.rdy,
+                            s.reg1_resp_rdy, s.memresp.val, s.duaxcelreq.val, s.memreq.rdy,
+                            s.memresp.val, s.reg1_resp_rdy,
+                            s.duaxcelreq.rdy, s.xcelreq.rdy)
 
     
     read_req_str  = " r_req:v{}|r{}|a{}|t{}".format(
