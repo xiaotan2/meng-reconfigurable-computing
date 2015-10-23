@@ -2,16 +2,17 @@ from pymtl        import *
 from pclib.rtl    import Mux, RegRst
 from pclib.ifcs import MemMsg, MemReqMsg4B, MemRespMsg4B
 from pclib.rtl  import SingleElementBypassQueue, SingleElementPipelinedQueue, TwoElementBypassQueue
+
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.fl   import InValRdyQueueAdapter, OutValRdyQueueAdapter
 from pclib.fl   import ListMemPortAdapter
-
+ 
 from xcel.XcelMsg      import XcelReqMsg, XcelRespMsg
 from xmem.MemMsgFuture import MemMsg, MemReqMsg, MemRespMsg
-
-
+ 
+ 
 class BSArbiter ( Model ) :
-
+ 
   # Constructor
 
   def __init__( s, mem_msg = MemMsg( 8, 32, 32 ) ):
@@ -73,7 +74,7 @@ class BSArbiter ( Model ) :
         s.memreq.msg.value = s.duaxcelreq.msg
         s.memreq.val.value = s.duaxcelreq.val
         s.memresp.rdy.value = s.duaxcelresp.rdy
-      
+
       s.xcelreq.rdy.value    = s.memreq.rdy
       s.duaxcelreq.rdy.value = s.memreq.rdy
 
@@ -111,7 +112,7 @@ class BSArbiter ( Model ) :
     #--------------------------------------------------------------
     # reset states
     s.state = RegRst( 4, reset_value = s.STATE_FirReq )
- 
+
     #---------------------------------------------------------------------
     # State Transition Logic
     #---------------------------------------------------------------------
@@ -147,4 +148,4 @@ class BSArbiter ( Model ) :
       if ( current_state == s.STATE_SecReq ):
         s.req_sel.value = 1
 
-    
+

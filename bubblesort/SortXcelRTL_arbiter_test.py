@@ -67,6 +67,7 @@ class TestHarness (Model):
     return s.src.line_trace()  + " > " + \
            s.mem.line_trace()  + " > " + \
            s.xcel.line_trace() + " > " + \
+           s.arbiter.line_trace() + " > " + \
            s.sink.line_trace()
   #  return s.xcel.line_trace()
 
