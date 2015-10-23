@@ -88,12 +88,12 @@ class BSArbiter ( Model ) :
       s.duaxcelresp.msg.value = s.memresp.msg
       s.duaxcelresp.val.value = s.memresp.val
 
-       # s.reg2_duaxcelresp_msg.value = s.memresp.msg
-       # s.reg2_duaxcelresp_val.value = s.memresp.val
-        s.reg2_msg_wire.value = s.memresp.msg
-        s.reg2_val_wire.value = s.memresp.val
-        s.xcelresp.msg.value = 0
-        s.xcelresp.val.value = 0
+      # s.reg2_duaxcelresp_msg.value = s.memresp.msg
+      # s.reg2_duaxcelresp_val.value = s.memresp.val
+      s.reg2_msg_wire.value = s.memresp.msg
+      s.reg2_val_wire.value = s.memresp.val
+      s.xcelresp.msg.value = 0
+      s.xcelresp.val.value = 0
       
       s.xcelreq.rdy.value    = s.memreq.rdy and s.arbitor_rdy
       s.duaxcelreq.rdy.value = s.memreq.rdy and s.arbitor_rdy
