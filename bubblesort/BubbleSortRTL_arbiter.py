@@ -35,27 +35,28 @@ class BSArbiter ( Model ) :
     #--------------------------------------------------------------
 
     # Request Register 
-    s.reg_req_msg = Wire( Bits(32) )
-    s.reg_req_val = Wire( Bits(1)  )
+    s.reg1_req_msg = Wire( Bits(77) )
+    s.reg1_req_val = Wire( Bits(1)  )
+    # a wire
+    s.arbitor_rdy = Wire( Bits(1)  )
    
     # Response Register
-    s.reg_resp_msg = Wire( Bits(32) )
-    s.reg_resp_val = Wire( Bits(1)  )
-    s.reg_resp_rdy = Wire( Bits(1)  )
+    s.reg1_resp_rdy = Wire( Bits(1)  )
    
+    s.reg2_duaxcelresp_msg = Wire( Bits(77) )
+    s.reg2_duaxcelresp_val = Wire( Bits(1)  )
+    
+    s.reg2_msg_wire = Wire( Bits(77) )
+    s.reg2_val_wire = Wire( Bits(1)  ) 
+    
     # Request Select
     s.req_sel     = Wire( Bits(1) )
     
-    # Request Mux Output Wires
-    s.req_msg_mux_out = Wire( Bits(32) )
-    s.req_val_mux_out = Wire( Bits(1)  )
-    
-    s.req_rdy = Wire( Bits(1)  )
-
     # States
-    s.STATE_FirReq = 0
-    s.STATE_SecReq = 1
-
+    s.STATE_FirReq        = 0
+    s.STATE_FirRespSecReq = 1
+    s.STATE_SecRespFirReq = 2
+    s.STATE_SecResp       = 3
     #--------------------------------------------------------------
     # Data path
     #--------------------------------------------------------------
@@ -67,9 +68,14 @@ class BSArbiter ( Model ) :
     def comb_logic():
       # Request Mux
       if s.req_sel:
-        s.memreq.msg.value = s.req_msg_mux_out
-        s.memreq.val.value = s.req_val_mux_out
-        s.memresp.rdy.value = s.reg_resp_rdy
+        s.memreq.msg.value = s.reg1_req_msg
+        s.memreq.val.value = s.reg1_req_val
+        s.memresp.rdy.value = s.reg1_resp_rdy
+
+        s.xcelresp.msg.value = s.memresp.msg
+        s.xcelresp.val.value = s.memresp.val
+        s.reg2_msg_wire.value = s.reg2_duaxcelresp_msg
+        s.reg2_val_wire.value = s.reg2_duaxcelresp_val
       else:
         s.memreq.msg.value = s.duaxcelreq.msg
         s.memreq.val.value = s.duaxcelreq.val
@@ -82,6 +88,18 @@ class BSArbiter ( Model ) :
       s.duaxcelresp.msg.value = s.memresp.msg
       s.duaxcelresp.val.value = s.memresp.val
 
+       # s.reg2_duaxcelresp_msg.value = s.memresp.msg
+       # s.reg2_duaxcelresp_val.value = s.memresp.val
+        s.reg2_msg_wire.value = s.memresp.msg
+        s.reg2_val_wire.value = s.memresp.val
+        s.xcelresp.msg.value = 0
+        s.xcelresp.val.value = 0
+      
+      s.xcelreq.rdy.value    = s.memreq.rdy and s.arbitor_rdy
+      s.duaxcelreq.rdy.value = s.memreq.rdy and s.arbitor_rdy
+    
+      s.duaxcelresp.msg.value = s.reg2_duaxcelresp_msg
+      s.duaxcelresp.val.value = s.reg2_duaxcelresp_val
     #--------------------------------------------------------------
     # Ticking Concurrent Blocks
     #--------------------------------------------------------------
@@ -90,29 +108,30 @@ class BSArbiter ( Model ) :
     def updatRegister():
       if s.reset:
         # Request reg
-        s.reg_req_msg.next = 0
-        s.reg_req_val.next = 0
+        s.reg1_req_msg.next = 0
+        s.reg1_req_val.next = 0
   
         # Response reg
-        s.reg_resp_msg.next = 0
-        s.reg_resp_val.next = 0
-        s.reg_resp_rdy.next = 0
+        s.reg1_resp_rdy.next = 0
+        s.reg2_duaxcelresp_msg.next = 0
+        s.reg2_duaxcelresp_val.next = 0
       else:
         # Request reg
-        s.reg_req_msg.next = s.xcelreq.msg
-        s.reg_req_val.next = s.xcelreq.val
+        s.reg1_req_msg.next = s.xcelreq.msg
+        s.reg1_req_val.next = s.xcelreq.val
+        s.reg2_duaxcelresp_msg.next = s.reg2_msg_wire
+        s.reg2_duaxcelresp_val.next = s.reg2_val_wire
         
         # Response reg
-        s.reg_resp_msg.next = s.memresp.msg
-        s.reg_resp_val.next = s.memresp.val
-        s.reg_resp_rdy.next = s.xcelresp.rdy
+        s.reg1_resp_rdy.next = s.xcelresp.rdy
 
     #--------------------------------------------------------------
     # Control Unit
     #--------------------------------------------------------------
     # reset states
-    s.state = RegRst( 4, reset_value = s.STATE_FirReq )
 
+    s.state = RegRst( 2, reset_value = s.STATE_FirReq )
+ 
     #---------------------------------------------------------------------
     # State Transition Logic
     #---------------------------------------------------------------------
@@ -123,11 +142,23 @@ class BSArbiter ( Model ) :
       next_state = s.state.out
 
       if ( curr_state == s.STATE_FirReq ):
-        if ( s.memreq.rdy and s.memresp.rdy ):
-          next_state = s.STATE_SecReq
+        if ( s.duaxcelreq.val and s.memreq.rdy ):
+          next_state = s.STATE_FirRespSecReq
       
-      if ( curr_state == s.STATE_SecReq ):
-        if ( s.memreq.rdy and s.memresp.rdy ):
+      if ( curr_state == s.STATE_FirRespSecReq ):
+        if ( s.memresp.val and s.duaxcelresp.rdy and s.memreq.rdy and s.reg1_req_val):
+#        ( s.xcelreq.val and s.memreq.rdy and s.memresp.val and s.duaxcelresp.rdy ):
+          next_state = s.STATE_SecResp
+
+      if ( curr_state == s.STATE_SecRespFirReq ):
+        if ( s.memresp.val and s.reg1_resp_rdy and s.memreq.rdy and s.duaxcelreq.val ):
+          next_state = s.STATE_FirRespSecReq
+        elif ( s.memresp.val and s.reg1_resp_rdy ):
+          next_state = s.STATE_SecResp
+
+      if ( curr_state == s.STATE_SecResp ):
+        if ( s.memresp.val and s.reg1_resp_rdy):
+#        ( s.memresp.val and s.xcelresp.rdy ):
           next_state = s.STATE_FirReq
 
       s.state.in_.value = next_state
@@ -144,8 +175,53 @@ class BSArbiter ( Model ) :
 
       if ( current_state == s.STATE_FirReq ):
         s.req_sel.value = 0
+        s.arbitor_rdy.value = 1
       
-      if ( current_state == s.STATE_SecReq ):
+      if ( current_state == s.STATE_FirRespSecReq ):
         s.req_sel.value = 1
+        s.arbitor_rdy.value = 0
+      
+      if ( current_state == s.STATE_SecRespFirReq ):
+        s.req_sel.value = 0
+        s.arbitor_rdy.value = 0
+      
+      if ( current_state == s.STATE_SecResp ):
+        s.req_sel.value = 1
+        s.arbitor_rdy.value = 0
+
+  def line_trace( s ):
+    
+    xcel_req_str  = " x_req:v{}$r{}$a{}$d{}$t{}".format(
+                            s.xcelreq.val, s.xcelreq.rdy,
+                            s.xcelreq.msg.addr,
+                            s.xcelreq.msg.data,
+                            s.xcelreq.msg.type_)
 
 
+    duaxcel_req_str  = " x_duareq:v{}$r{}$a{}$d{}$t{}$sel{}$state{}".format(
+                            s.duaxcelreq.val, s.duaxcelreq.rdy,
+                            s.duaxcelreq.msg.addr,
+                            s.duaxcelreq.msg.data,
+                            s.duaxcelreq.msg.type_, s.req_sel.value, s.state.out)
+
+    state_trans_str  = " x_state:{}s0<{}|{}>s1<{}|{}|{}|{}>s2<{}|{}|{}|{}>s3<{}|{}>bubble_cond:<{}|{}>".format(
+                            s.state.out,
+                            s.duaxcelreq.val, s.memreq.rdy, 
+                            s.duaxcelresp.rdy, s.memresp.val, s.reg1_req_val, s.memreq.rdy,
+                            s.reg1_resp_rdy, s.memresp.val, s.duaxcelreq.val, s.memreq.rdy,
+                            s.memresp.val, s.reg1_resp_rdy,
+                            s.duaxcelreq.rdy, s.xcelreq.rdy)
+
+    read_req_str  = " r_req:v{}|r{}|a{}|t{}".format(
+                            s.memreq.val,
+                            s.memreq.rdy,
+                            s.memreq.msg.addr,
+                            s.memreq.msg.type_)
+    
+
+    line_str = (read_req_str)
+    line_str = (duaxcel_req_str)
+    line_str = (state_trans_str)
+    return line_str
+
+ 

@@ -66,6 +66,7 @@ class TestHarness (Model):
   def line_trace( s ):
     return s.src.line_trace()  + " > " + \
            s.mem.line_trace()  + " > " + \
+           s.arbiter.line_trace() + " > " + \
            s.xcel.line_trace() + " > " + \
            s.arbiter.line_trace() + " > " + \
            s.sink.line_trace()
@@ -181,7 +182,7 @@ def run_test( xcel, arbiter, test_params, test_verilog=False ):# dump_vcd, test_
 
   # Run the test
 
-  run_sim( th, max_cycles=20000 )  # dump_vcd, max_cycles=20000 )
+  run_sim( th, max_cycles=20 )  # dump_vcd, max_cycles=20000 )
 
   # Retrieve data from test memory
 
