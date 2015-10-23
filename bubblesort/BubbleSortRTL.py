@@ -137,7 +137,7 @@ class BubbleSortRTL( Model ) :
                      read_resp_str + "$$" + 
                      write_req_str) 
 
-    line_str = (debug_str)
+    line_str = (read_req_str)
     return line_str
 
 class BSDatapathRTL( Model ):
