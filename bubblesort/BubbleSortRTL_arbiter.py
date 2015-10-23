@@ -183,11 +183,13 @@ class BSArbiter ( Model ) :
                             s.duaxcelreq.msg.data,
                             s.duaxcelreq.msg.type_, s.req_sel.value, s.state.out)
 
-    state_trans_str  = " x_state:{}s1<{}|{}>s2<{}|{}|{}|{}>s3<{}|{}>".format(
+    state_trans_str  = " x_state:{}s1<{}|{}>s2<{}|{}|{}|{}>s3<{}|{}>bubble_cond:<{}|{}>".format(
                             s.state.out,
                             s.duaxcelreq.val, s.memreq.rdy,
                             s.duaxcelresp.rdy, s.memresp.val, s.xcelreq.val, s.memreq.rdy,
-                            s.xcelresp.rdy, s.memresp.val)
+                            s.xcelresp.rdy, s.memresp.val,
+                            s.xcelreq.rdy, s.duaxcelreq.rdy)
+
     
     read_req_str  = " r_req:v{}|r{}|a{}|t{}".format(
                             s.memreq.val,
