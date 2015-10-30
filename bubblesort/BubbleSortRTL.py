@@ -123,9 +123,9 @@ class BubbleSortRTL( Model ) :
                             s.memreq_queue.enq.msg.addr, 
                             s.memreq_queue.enq.msg.data)
 
-    debug_str     = " debug{}|{}|{}".format(
+    debug_str     = " debug{}|{}|{}|{}".format(
                             s.ctrl.state.out, s.ctrl.counteri, 
-                            s.ctrl.countero)
+                            s.ctrl.countero, s.ctrl.reg_ww)
 
     mux_str       = " m1{}|m2{}|m3{}|m4{}".format(
                             s.dpath.reg_mux1_out, 
@@ -346,8 +346,8 @@ class BSControlUnitRTL( Model ) :
 
       # Transistions out of RR state
       if ( curr_state == s.STATE_RR ):
-        if( s.memreq_rdy and s.dualmemreq_rdy):
-          if ( (s.memresp_rdy and s.dualmemresp_rdy) or ~s.reg_ww):
+        if( s.memreq_rdy and s.dualmemreq_rdy and
+          ( (s.memresp_rdy and s.dualmemresp_rdy) or s.countero==0) ):
             if(s.size == 2):
               next_state       = s.STATE_WW
             else:
@@ -381,14 +381,14 @@ class BSControlUnitRTL( Model ) :
             if s.xcelresp_rdy:
               next_state           = s.STATE_SOURCE
 
-      # Transistions out of DONE state
-      if ( curr_state == s.STATE_DONE ):
-        if (s.memresp_val and s.dualmemresp_val and
-            s.xcelresp_rdy):
-          if(s.countero != s.size):
-            next_state       = s.STATE_RR
-          else:
-            next_state       = s.STATE_SOURCE
+#      # Transistions out of DONE state
+#      if ( curr_state == s.STATE_DONE ):
+#        if (s.memresp_val and s.dualmemresp_val and
+#            s.xcelresp_rdy):
+#          if(s.countero != s.size):
+#            next_state       = s.STATE_RR
+#          else:
+#            next_state       = s.STATE_SOURCE
 
       s.state.in_.value      = next_state
 
@@ -447,21 +447,22 @@ class BSControlUnitRTL( Model ) :
 
       # In RR state
       elif (current_state == s.STATE_RR):
-        if(s.memreq_rdy and s.dualmemreq_rdy):
-          if( (s.memresp_val and s.dualmemresp_val) or ~s.reg_ww ):
-            s.memreq_val.value             = 1
-            s.dualmemreq_val.value         = 1
-            if s.reg_ww:
-              s.memresp_rdy.value          = 1
-              s.dualmemresp_rdy.value      = 1
-            s.memreq_msgtype.value         = MemReqMsg.TYPE_READ
-            s.memreq_msgaddr.value         = s.base + 4 * (s.counteri + 1)
-            s.dualmemreq_msgtype.value     = MemReqMsg.TYPE_READ
-            s.dualmemreq_msgaddr.value     = s.base + 4 * s.counteri
-            s.reg_rr.value                 = 1
-            s.reg_ww.value                 = 0
+        if(s.memreq_rdy and s.dualmemreq_rdy and
+           ((s.memresp_val and s.dualmemresp_val) or (s.countero == 0))):
+          s.memreq_val.value             = 1
+          s.dualmemreq_val.value         = 1
+          s.memreq_msgtype.value         = MemReqMsg.TYPE_READ
+          s.memreq_msgaddr.value         = s.base + 4 * (s.counteri + 1)
+          s.dualmemreq_msgtype.value     = MemReqMsg.TYPE_READ
+          s.dualmemreq_msgaddr.value     = s.base + 4 * s.counteri
+          s.reg_rr.value                 = 1
+          s.reg_ww.value                 = 0
+          if s.countero != 0:
+            s.memresp_rdy.value          = 1
+            s.dualmemresp_rdy.value      = 1        
         else:
           s.reg_rr.value                 = 0
+          s.reg_ww.value                 = 0
 
       # In DRW state
       elif (current_state == s.STATE_DRW):
@@ -524,13 +525,13 @@ class BSControlUnitRTL( Model ) :
           s.reg_rrw.value                = 0
           s.reg_rr.value                 = 0
 
-      # In DONE state
-      elif (current_state == s.STATE_DONE):
-        if(s.memresp_val and s.dualmemresp_val):
-          s.memresp_rdy.value            = 1
-          s.dualmemresp_rdy.value        = 1
-          s.reg_ww.value                 = 0
-          s.reg_rrw.value                = 0
-        else:
-          s.reg_ww.value                 = 0
-          s.reg_rrw.value                = 0
+#      # In DONE state
+#      elif (current_state == s.STATE_DONE):
+#        if(s.memresp_val and s.dualmemresp_val):
+#          s.memresp_rdy.value            = 1
+#          s.dualmemresp_rdy.value        = 1
+#          s.reg_ww.value                 = 0
+#          s.reg_rrw.value                = 0
+#        else:
+#          s.reg_ww.value                 = 0
+#          s.reg_rrw.value                = 0
