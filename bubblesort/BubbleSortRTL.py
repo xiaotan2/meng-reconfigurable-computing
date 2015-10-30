@@ -125,7 +125,7 @@ class BubbleSortRTL( Model ) :
 
     debug_str     = " debug{}|{}|{}|{}".format(
                             s.ctrl.state.out, s.ctrl.counteri, 
-                            s.ctrl.countero, s.ctrl.reg_ww)
+                            s.ctrl.countero, s.ctrl.reg_rr)
 
     mux_str       = " m1{}|m2{}|m3{}|m4{}".format(
                             s.dpath.reg_mux1_out, 
@@ -381,15 +381,6 @@ class BSControlUnitRTL( Model ) :
             if s.xcelresp_rdy:
               next_state           = s.STATE_SOURCE
 
-#      # Transistions out of DONE state
-#      if ( curr_state == s.STATE_DONE ):
-#        if (s.memresp_val and s.dualmemresp_val and
-#            s.xcelresp_rdy):
-#          if(s.countero != s.size):
-#            next_state       = s.STATE_RR
-#          else:
-#            next_state       = s.STATE_SOURCE
-
       s.state.in_.value      = next_state
 
     #---------------------------------------------------------------------
@@ -457,12 +448,14 @@ class BSControlUnitRTL( Model ) :
           s.dualmemreq_msgaddr.value     = s.base + 4 * s.counteri
           s.reg_rr.value                 = 1
           s.reg_ww.value                 = 0
+          s.reg_rrw.value                = 0
           if s.countero != 0:
             s.memresp_rdy.value          = 1
             s.dualmemresp_rdy.value      = 1        
         else:
           s.reg_rr.value                 = 0
           s.reg_ww.value                 = 0
+          s.reg_rrw.value                = 0
 
       # In DRW state
       elif (current_state == s.STATE_DRW):
@@ -525,13 +518,3 @@ class BSControlUnitRTL( Model ) :
           s.reg_rrw.value                = 0
           s.reg_rr.value                 = 0
 
-#      # In DONE state
-#      elif (current_state == s.STATE_DONE):
-#        if(s.memresp_val and s.dualmemresp_val):
-#          s.memresp_rdy.value            = 1
-#          s.dualmemresp_rdy.value        = 1
-#          s.reg_ww.value                 = 0
-#          s.reg_rrw.value                = 0
-#        else:
-#          s.reg_ww.value                 = 0
-#          s.reg_rrw.value                = 0
