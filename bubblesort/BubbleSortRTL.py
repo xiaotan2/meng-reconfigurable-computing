@@ -347,10 +347,11 @@ class BSControlUnitRTL( Model ) :
       # Transistions out of RR state
       if ( curr_state == s.STATE_RR ):
         if( s.memreq_rdy and s.dualmemreq_rdy):
-          if(s.size == 2):
-            next_state       = s.STATE_WW
-          else:
-            next_state       = s.STATE_DRW
+          if ( (s.memresp_rdy and s.dualmemresp_rdy) or ~s.reg_ww):
+            if(s.size == 2):
+              next_state       = s.STATE_WW
+            else:
+              next_state       = s.STATE_DRW
 
       # Transistions out of DRW state
       if ( curr_state == s.STATE_DRW ):
@@ -374,7 +375,11 @@ class BSControlUnitRTL( Model ) :
       if ( curr_state == s.STATE_WW ):
         if( s.memresp_rdy and s.dualmemresp_rdy and
             s.memreq_rdy and s.dualmemreq_rdy):
-          next_state           = s.STATE_DONE
+          if( s.countero != s.size):
+            next_state           = s.STATE_RR
+          else:
+            if s.xcelresp_rdy:
+              next_state           = s.STATE_SOURCE
 
       # Transistions out of DONE state
       if ( curr_state == s.STATE_DONE ):
@@ -443,13 +448,18 @@ class BSControlUnitRTL( Model ) :
       # In RR state
       elif (current_state == s.STATE_RR):
         if(s.memreq_rdy and s.dualmemreq_rdy):
-          s.memreq_val.value             = 1
-          s.dualmemreq_val.value         = 1
-          s.memreq_msgtype.value         = MemReqMsg.TYPE_READ
-          s.memreq_msgaddr.value         = s.base + 4 * (s.counteri + 1)
-          s.dualmemreq_msgtype.value     = MemReqMsg.TYPE_READ
-          s.dualmemreq_msgaddr.value     = s.base + 4 * s.counteri
-          s.reg_rr.value                 = 1
+          if( (s.memresp_val and s.dualmemresp_val) or ~s.reg_ww ):
+            s.memreq_val.value             = 1
+            s.dualmemreq_val.value         = 1
+            if s.reg_ww:
+              s.memresp_rdy.value          = 1
+              s.dualmemresp_rdy.value      = 1
+            s.memreq_msgtype.value         = MemReqMsg.TYPE_READ
+            s.memreq_msgaddr.value         = s.base + 4 * (s.counteri + 1)
+            s.dualmemreq_msgtype.value     = MemReqMsg.TYPE_READ
+            s.dualmemreq_msgaddr.value     = s.base + 4 * s.counteri
+            s.reg_rr.value                 = 1
+            s.reg_ww.value                 = 0
         else:
           s.reg_rr.value                 = 0
 
