@@ -127,6 +127,7 @@ test_case_table = mk_test_case_table([
   (                      "data            src sink stall lat"),
   [ "super_mini",         super_mini,     0,  0,   0,    0   ],
   [ "small_mini",         small_mini,     0,  0,   0,    0   ],
+  [ "small_mini_0_0_4",   small_mini,     0,  0,   0,    4   ],
   [ "mini",               mini,           0,  0,   0,    0   ],
   [ "mini_0_0_4",         mini,           0,  0,   0.5,  4   ],
   [ "mini_0_8_0",         mini,           0,  8,   0.5,  0   ],
@@ -176,7 +177,7 @@ def run_test( xcel, test_params, test_verilog=False ):# dump_vcd, test_verilog=F
 
   # Run the test
 
-  run_sim( th, max_cycles=20000 )  # dump_vcd, max_cycles=20000 )
+  run_sim( th, max_cycles=100 )  # dump_vcd, max_cycles=20000 )
 
   # Retrieve data from test memory
 
