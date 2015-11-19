@@ -52,13 +52,16 @@ class SchedulerPRLT( Model ):
     s.state       = RegRst( 4, reset_value = s.STATE_IDLE )
 
     # Counters
-    s.init_count  = Wire ( 2 )
-    s.input_count = Wire ( 32 )
+    s.init_count     = Wire ( 2 )
+    s.input_count    = Wire ( 32 )
 
     # Signals
-    s.mapper_done = Wire ( 1 ) # if one or more mapper is done and send resp
-    s.init        = Wire ( 1 ) # init signal indicates scheduler at initial state
-    s.end         = Wire ( 1 ) # end signal indicates all task are loaded
+    s.mapper_done    = Wire ( 1 ) # if one or more mapper is done and send resp
+    s.init           = Wire ( 1 ) # init signal indicates scheduler at initial state
+    s.end            = Wire ( 1 ) # end signal indicates all task are loaded
+    s.num_task_queue = Wire ( 2 )
+
+    s.connect(s.task_queue.num_free_entries, s.num_task_queue)
 
     @s.combinational
     def logic():
@@ -109,15 +112,15 @@ class SchedulerPRLT( Model ):
           if(s.map_resp[i].val):
             s.idle_queue.enq.msg.value = i
             s.idle_queue.enq.val.value = 1
-            if s.end and s.task_queue isempty:
-              s.red_req.msg.value = s.map_resp[i].msg.data
-              s.red_req.msg.type_ =
+            if s.end and s.num_task_queue == 0:
+              s.red_req.msg.data.value = s.map_resp[i].msg.data
+              s.red_req.msg.type_.value = 1
               s.red_req.val.value = 1
               s.map_resp[i].rdy.value = 1
               s.done.value = 1
             else:
-              s.red_req.msg.value = s.map_resp[i].msg.data
-              s.red_req.msg.type_ =
+              s.red_req.msg.data.value = s.map_resp[i].msg.data
+              s.red_req.msg.type_.value = 0
               s.red_req.val.value = 1
               s.map_resp[i].rdy.value = 1
             break
