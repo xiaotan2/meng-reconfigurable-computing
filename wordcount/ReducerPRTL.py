@@ -44,20 +44,20 @@ class ReducerDpath (Model):
     # Zero Extender   
     s.zext = m = ZeroExtender( 1, 32 )
     s.connect_dict({
-      m.in_     : s.req.msg_data
+      m.in_     : s.req_msg_data
     })
 
     # Adder    
     s.add = m = Adder( 32 )
     s.connect_dict({
       m.in0     : s.zext.out,
-      m.in1     : s.reg_out,
+      m.in1     : s.mux.out,
       m.cin     : 0,
       m.out     : s.adder_out
     })
 
     # Connect to output port
-    s.connect( s.reg_out s.resp_msg )
+    s.connect( s.reg_out, s.resp_msg )
 
 
 
@@ -96,8 +96,10 @@ class ReducerCtrl (Model):
      
       # Transition out of IDLE state
       if ( curr_state == s.STATE_IDLE ):
-        if ( s.req_val and s.req_rdy ):
+        if ( (s.req_val and s.req_rdy) and (s.req_msg_type == 0) ):
            next_state = s.STATE_CALC
+        elif ( (s.req_val and s.req_rdy) and (s.req_msg_type == 1) ):
+           next_state = s.STATE_DONE
 
       # Transition out of CALC state
       if ( curr_state == s.STATE_CALC ):
@@ -121,22 +123,22 @@ class ReducerCtrl (Model):
       if current_state == s.STATE_IDLE:
         s.req_rdy.value  = 1
         s.resp_val.value = 0
-        s.en             = 1
-        s.sel            = 0
+        s.en.value       = 1
+        s.sel.value      = 0
 
       # CALC state
       elif current_state == s.STATE_CALC:
         s.req_rdy.value  = 1
         s.resp_val.value = 0
-        s.en             = 1
-        s.sel            = 1
+        s.en.value       = 1
+        s.sel.value      = 1
 
       # DONE state
       elif current_state == s.STATE_DONE:
         s.req_rdy.value  = 0
         s.resp_val.value = 1
-        s.en             = 0
-        s.sel            = 0
+        s.en.value       = 0
+        s.sel.value      = 0
 
     
  
