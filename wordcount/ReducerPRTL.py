@@ -15,10 +15,10 @@ class ReducerDpath (Model):
 
   def __init__ ( s ):
    
-    s.req_msg    = InPort (1)
-    s.resp_msg   = OutPort(32)
-    s.sel        = InPort (1)
-    s.en         = InPort (1)
+    s.req_msg_data  = InPort (1)
+    s.resp_msg      = OutPort(32)
+    s.sel           = InPort (1)
+    s.en            = InPort (1)
 
     # Input Mux    
     s.reg_out = Wire(32)
@@ -44,7 +44,7 @@ class ReducerDpath (Model):
     # Zero Extender   
     s.zext = m = ZeroExtender( 1, 32 )
     s.connect_dict({
-      m.in_     : s.req.msg
+      m.in_     : s.req.msg_data
     })
 
     # Adder    
@@ -69,14 +69,16 @@ class ReducerCtrl (Model):
 
   def __init__( s ):
 
-    s.req_val    = InPort  (1)
-    s.req_rdy    = OutPort (1)
+    s.req_val       = InPort  (1)
+    s.req_rdy       = OutPort (1)
 
-    s.resp_val   = OutPort (1)
-    s.resp_rdy   = InPort  (1)
+    s.resp_val      = OutPort (1)
+    s.resp_rdy      = InPort  (1)
 
-    s.sel        = OutPort (1)
-    s.en         = OutPort (1)
+    s.req_msg_type  = InPort  (1)    
+
+    s.sel           = OutPort (1)
+    s.en            = OutPort (1)
 
     # State element
     s.STATE_IDLE = 0
@@ -99,7 +101,7 @@ class ReducerCtrl (Model):
 
       # Transition out of CALC state
       if ( curr_state == s.STATE_CALC ):
-        if ( (s.req_val and s.req_rdy) and last_message ):
+        if ( (s.req_val and s.req_rdy) and (s.req_msg_type == 1) ):
            next_state = s.STATE_DONE 
 
       # Transition out of DONE state
@@ -152,13 +154,14 @@ class ReducerPRTL (Model):
     s.dpath   = ReducerDpath()
     s.ctrl    = ReducerCtrl() 
 
-    s.connect( s.req.msg,         s.dpath.req_msg )
-    s.connect( s.req.val,         s.ctrl.req_val  )
-    s.connect( s.req.rdy,         s.ctrl.req_rdy  )
+    s.connect( s.req.msg.data,    s.dpath.req_msg_data )
+    s.connect( s.req.msg.type_,   s.ctrl.req_msg_type  )
+    s.connect( s.req.val,         s.ctrl.req_val       )
+    s.connect( s.req.rdy,         s.ctrl.req_rdy       )
   
-    s.connect( s.dpath.resp_msg,  s.resp.msg      )
-    s.connect( s.ctrl.resp_val,   s.resp.val      )
-    s.connect( s.ctrl.resp_rdy,   s.resp.rdy      )
+    s.connect( s.dpath.resp_msg,  s.resp.msg           )
+    s.connect( s.ctrl.resp_val,   s.resp.val           )
+    s.connect( s.ctrl.resp_rdy,   s.resp.rdy           )
 
     s.connect_auto( s.dpath, s.ctrl )
 
