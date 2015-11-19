@@ -60,7 +60,7 @@ class TestHarness (Model):
 def mk_req_msg( data, type ):
   msg = MapperReqMsg()
   msg.data = data
-  msg.type = type
+  msg.type_ = type
   return msg
 
 #-------------------------------------------------------------------------
@@ -70,7 +70,7 @@ def mk_req_msg( data, type ):
 def mk_resp_msg( data, type ):
   msg = MapperRespMsg()
   msg.data = data
-  msg.type = type
+  msg.type_ = type
   return msg
 
 #-------------------------------------------------------------------------
