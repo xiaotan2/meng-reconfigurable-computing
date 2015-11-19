@@ -11,7 +11,8 @@ from pymtl      import *
 from pclib.test import mk_test_case_table, run_sim
 from pclib.test import TestSource, TestSink
 
-from MapperMsg  import MapperMsg
+from MapperMsg  import MapperReqMsg, MapperRespMsg
+from MapperPRTL import MapperRTL
 
 #-------------------------------------------------------------------------
 # TestHarness
@@ -19,15 +20,15 @@ from MapperMsg  import MapperMsg
 
 class TestHarness (Model):
 
-  def __init__( s, MapperPRTL, src_msgs, sink_msgs,
+  def __init__( s, MapperRTL, src_msgs, sink_msgs,
                 src_delay, sink_delay,
                 dump_vcd=False, test_verilog=False ):
 
     # Instantiate models
 
-    s.src  = TestSource ( MapperReqMsg(), src_msgs,  src_delay  )
-    s.mapper  = MapperPRTL    ()
-    s.sink = TestSink   ( Bits(16),        sink_msgs, sink_delay )
+    s.src     = TestSource ( MapperReqMsg(), src_msgs,  src_delay  )
+    s.mapper  = MapperRTL ()
+    s.sink    = TestSink   ( MapperRespMsg(), sink_msgs, sink_delay )
 
     # Dump VCD
 
@@ -56,10 +57,20 @@ class TestHarness (Model):
 # mk_req_msg
 #-------------------------------------------------------------------------
 
-def mk_req_msg( a, b ):
-  msg = GcdUnitReqMsg()
-  msg.a = a
-  msg.b = b
+def mk_req_msg( data, type ):
+  msg = MapperReqMsg()
+  msg.data = data
+  msg.type = type
+  return msg
+
+#-------------------------------------------------------------------------
+# mk_resp_msg
+#-------------------------------------------------------------------------
+
+def mk_resp_msg( data, type ):
+  msg = MapperRespMsg()
+  msg.data = data
+  msg.type = type
   return msg
 
 #-------------------------------------------------------------------------
@@ -67,17 +78,17 @@ def mk_req_msg( a, b ):
 #-------------------------------------------------------------------------
 
 basic_msgs = [
-  mk_req_msg( 15,     5      ), 5,
-  mk_req_msg( 3,      9      ), 3,
-  mk_req_msg( 0,      0      ), 0,
-  mk_req_msg( 27,     15     ), 3,
-  mk_req_msg( 21,     49     ), 7,
-  mk_req_msg( 25,     30     ), 5,
-  mk_req_msg( 19,     27     ), 1,
-  mk_req_msg( 40,     40     ), 40,
-  mk_req_msg( 250,    190    ), 10,
-  mk_req_msg( 5,      250    ), 5,
-  mk_req_msg( 0xffff, 0x00ff ), 0xff,
+  mk_req_msg( 15,    1  ), mk_resp_msg( 1,  1  ),
+  mk_req_msg( 3,     0  ), mk_resp_msg( 0,  0  ),
+  mk_req_msg( 0,     0  ), mk_resp_msg( 0,  0  ),
+  mk_req_msg( 27,    0  ), mk_resp_msg( 0,  0  ),
+  mk_req_msg( 21,    0  ), mk_resp_msg( 0,  0  ),
+  mk_req_msg( 15,    0  ), mk_resp_msg( 1,  0  ),
+  mk_req_msg( 19,    0  ), mk_resp_msg( 0,  0  ),
+  mk_req_msg( 15,    0  ), mk_resp_msg( 1,  0  ),
+  mk_req_msg( 250,   0  ), mk_resp_msg( 0,  0  ),
+  mk_req_msg( 5,     0  ), mk_resp_msg( 0,  0  ),
+  mk_req_msg( 0xff,  0  ), mk_resp_msg( 0,  0  ),
 ]
 
 #-------------------------------------------------------------------------
@@ -86,11 +97,13 @@ basic_msgs = [
 
 random.seed(0xdeadbeef)
 random_msgs = []
-for i in xrange(20):
-  a = random.randint(0,0xffff)
-  b = random.randint(0,0xffff)
-  c = gcd( a, b )
-  random_msgs.extend([ mk_req_msg( a, b ), c ])
+for j in xrange(20):
+  target = random.randint( 0, 0xff )
+  random_msgs.extend([ mk_req_msg( target, 1 ), mk_resp_msg( 1, 1 ) ])
+  for i in xrange(20):
+    a = random.randint(0,0xff)
+    c = ( a == target )
+    random_msgs.extend([ mk_req_msg( a, 0 ), mk_resp_msg( c, 0 ) ])
 
 #-------------------------------------------------------------------------
 # Test Case Table
@@ -111,7 +124,7 @@ test_case_table = mk_test_case_table([
 
 @pytest.mark.parametrize( **test_case_table )
 def test( test_params, dump_vcd ):
-  run_sim( TestHarness( MapperPRTL,
+  run_sim( TestHarness( MapperRTL,
                         test_params.msgs[::2], test_params.msgs[1::2],
                         test_params.src_delay, test_params.sink_delay ),
            dump_vcd )
