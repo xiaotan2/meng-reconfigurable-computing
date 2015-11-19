@@ -151,14 +151,14 @@ class MapperRTL( Model ):
     # connect input interface to dpath/ctrl
     s.connect( s.req.msg.data,      s.dpath.req_msg_data  )
 
-    s.connect( s.req.msg.type,      s.ctrl.req_msg_type   )
+    s.connect( s.req.msg.type_,     s.ctrl.req_msg_type   )
     s.connect( s.req.val,           s.ctrl.req_val        )
     s.connect( s.resp.rdy,          s.ctrl.resp_rdy       )
  
     # connect dpath/ctrl to output interface
     s.connect( s.dpath.resp_msg_data,  s.resp.msg.data    )
                                                           
-    s.connect( s.ctrl.resp_msg_type,  s.resp.msg.type     )
+    s.connect( s.ctrl.resp_msg_type,  s.resp.msg.type_    )
     s.connect( s.ctrl.req_rdy,        s.req.rdy           )
     s.connect( s.ctrl.resp_val,       s.resp.val          )
 

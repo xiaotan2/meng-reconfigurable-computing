@@ -4,6 +4,8 @@ from pymtl      import *
 from pclib.ifcs import InValRdyBundle, OutValRdyBundle
 from pclib.ifcs import MemReqMsg, MemRespMsg
 from pclib.rtl  import RegRst, RegisterFile, NormalQueue, RoundRobinArbiter
+from MapperMsg  import MapperReqMsg, MapperRespMsg
+from ReducerMsg import ReducerReqMsg, ReducerRespMsg
 
 TYPE_READ = 0
 TYPE_WRITE = 1
@@ -15,6 +17,9 @@ class SchedulerPRLT( Model ):
     # Top Level Interface
     s.in_ = InValRdyBundle ()
     s.out = InValRdyBundle ()
+    s.referece = InPort ( 32 )
+    s.base     = InPort ( 32 )
+    s.size     = InPort ( 32 )
 
     # Global Memory Interface
     s.gmem_req  = InValRdyBundle ( MemReqMsg(8, 32, 32) )
@@ -25,12 +30,12 @@ class SchedulerPRLT( Model ):
     s.lmem_resp = InValRdyBundle ( MemRespMsg(8, 32) )
 
     # Mapper Interface
-    s.map_req  = InValRdyBundle [mapper_num] ( MapperReqMessage() )
-    s.map_resp = InValRdyBundle [mapper_num] ( MapperRespMessage() )
+    s.map_req  = InValRdyBundle [mapper_num] ( MapperReqMsg() )
+    s.map_resp = InValRdyBundle [mapper_num] ( MapperRespMsg() )
 
     # Reducer Interface
-    s.red_req  = InValRdyBundle [reducer_num] ( ReducerReqMessage() )
-    s.red_resp = InValRdyBundle [reducer_num] ( ReducerRespMessage() )
+    s.red_req  = InValRdyBundle [reducer_num] ( ReducerReqMsg() )
+    s.red_resp = InValRdyBundle [reducer_num] ( ReducerRespMsg() )
 
     # Task Queue
     s.task_queue = NormalQueue ( 2, Bits(32) )
@@ -75,7 +80,8 @@ class SchedulerPRLT( Model ):
       # idle queue is ready to dequeue and mapper is ready to take request
         if (s.task_queue.deq.val and s.idle_queue.deq.val and
             s.map_req[s.idle_queue.deq.msg].rdy):
-          s.map_req[s.idle_queue.deq.msg].msg.value = s.task_queue.deq.msg[0:8]
+          s.map_req[s.idle_queue.deq.msg].msg.data.value = s.task_queue.deq.msg[0:8]
+          s.map_req[s.idle_queue.deq.msg].msg.type_.value = 0
           s.map_req[s.idle_queue.deq.msg].val.value = 1
           s.task_queue.deq.rdy.value = 1
           s.idle_queue.deq.rdy.value = 1
@@ -104,13 +110,13 @@ class SchedulerPRLT( Model ):
             s.idle_queue.enq.msg.value = i
             s.idle_queue.enq.val.value = 1
             if s.end and s.task_queue isempty:
-              s.red_req.msg.value = s.map_resp[i].msg
+              s.red_req.msg.value = s.map_resp[i].msg.data
               s.red_req.msg.type_ =
               s.red_req.val.value = 1
               s.map_resp[i].rdy.value = 1
               s.done.value = 1
             else:
-              s.red_req.msg.value = s.map_resp[i].msg
+              s.red_req.msg.value = s.map_resp[i].msg.data
               s.red_req.msg.type_ =
               s.red_req.val.value = 1
               s.map_resp[i].rdy.value = 1
@@ -169,7 +175,8 @@ class SchedulerPRLT( Model ):
         # if mapper is rdy, send input info to mapper, and enq its id to idle queue
         if (s.init_count != mapper_num and s.map_req[s.init_count].rdy and
             s.idle_queue.enq.rdy):
-          s.map_req[s.init_count].msg.value = 
+          s.map_req[s.init_count].msg.data.value = s.reference
+          s.map_req[s.init_count].msg.type_.value = 1
           s.map_req[s.init_count].val.value = 1
           s.idle_queue.enq.msg.value = s.init_count
           s.idle_queue.enq.val.value = 1
@@ -178,9 +185,10 @@ class SchedulerPRLT( Model ):
         # at the last 2 cycle of init, send read req to global memory
         if s.init_count == mapper_num - 2:
           if s.gmem_req.rdy:
-            s.gmem_req.msg.addr.value = 
+            s.gmem_req.msg.addr.value = s.base + (4 * s.input_count)
             s.gmem_req.msg.type_.value = TYPE_READ
-            s.gmem_req.val.value = 1          
+            s.gmem_req.val.value = 1
+            s.input_count = s.input_count + 1
 
         # at the last cycle of init, receive read resp to global memory, put it in task queue
         # send another read req to global memory
@@ -189,9 +197,10 @@ class SchedulerPRLT( Model ):
             s.task_queue.enq.msg.value = s.gmem_resp.msg
             s.task_queue.enq.val.value = 1
             s.gmem_resp.rdy.value = 1
-            s.gmem_req.msg.addr.value =
+            s.gmem_req.msg.addr.value = s.base + (4 * s.input_count)
             s.gmem_req.msg.type_.value = TYPE_READ
             s.gmem_req.val.value = 1
+            s.input_count = s.input_count + 1
 
       # In START state
       if (current_state == s.STATE_START):
@@ -202,9 +211,10 @@ class SchedulerPRLT( Model ):
           s.task_queue.enq.msg.value = s.gmem_resp.msg
           s.task_queue.enq.val.value = 1
           s.gmem_resp.rdy.value = 1
-          s.gmem_req.msg.addr.value =
+          s.gmem_req.msg.addr.value = s.base + (4 * s.input_count)
           s.gmem_req.msg.type_.value = TYPE_READ
           s.gmem_req.val.value = 1
+          s.input_count = s.input_count + 1
 
       # In END state
       if (current_state == s.STATE_END):
