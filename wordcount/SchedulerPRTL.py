@@ -16,25 +16,25 @@ class SchedulerPRLT( Model ):
 
     # Top Level Interface
     s.in_ = InValRdyBundle ()
-    s.out = InValRdyBundle ()
+    s.out = OutValRdyBundle ()
     s.referece = InPort ( 32 )
     s.base     = InPort ( 32 )
     s.size     = InPort ( 32 )
 
     # Global Memory Interface
-    s.gmem_req  = InValRdyBundle ( MemReqMsg(8, 32, 32) )
+    s.gmem_req  = OutValRdyBundle ( MemReqMsg(8, 32, 32) )
     s.gmem_resp = InValRdyBundle ( MemRespMsg(8, 32) )
 
     # Local Memory Interface
-    s.lmem_req  = InValRdyBundle ( MemReqMsg(8, 32, 32) )
+    s.lmem_req  = OutValRdyBundle ( MemReqMsg(8, 32, 32) )
     s.lmem_resp = InValRdyBundle ( MemRespMsg(8, 32) )
 
     # Mapper Interface
-    s.map_req  = InValRdyBundle [mapper_num] ( MapperReqMsg() )
+    s.map_req  = OutValRdyBundle [mapper_num] ( MapperReqMsg() )
     s.map_resp = InValRdyBundle [mapper_num] ( MapperRespMsg() )
 
     # Reducer Interface
-    s.red_req  = InValRdyBundle [reducer_num] ( ReducerReqMsg() )
+    s.red_req  = OutValRdyBundle [reducer_num] ( ReducerReqMsg() )
     s.red_resp = InValRdyBundle [reducer_num] ( ReducerRespMsg() )
 
     # Task Queue
@@ -48,6 +48,7 @@ class SchedulerPRLT( Model ):
     s.STATE_INIT   = 1    # Init state, scheduler assigns input info to each Mapper
     s.STATE_START  = 2    # Start state, scheduler starts scheduling
     s.STATE_END    = 3    # End state, shceduler loads all task from global memory and it is done
+    s.STATE_DONE   = 4    # Done state, scheduler sends response to Test Sink
 
     s.state       = RegRst( 4, reset_value = s.STATE_IDLE )
 
@@ -149,7 +150,10 @@ class SchedulerPRLT( Model ):
 
       if ( curr_state == s.STATE_END ):
         if ( s.done ):
-          next_state = s.STATE_IDLE
+          next_state = s.STATE_DONE
+
+      if ( curr_state == s.STATE_DONE ):
+        next_state = s.STATE_IDLE
 
     s.state.in_.value = next_state
 
@@ -167,8 +171,12 @@ class SchedulerPRLT( Model ):
       # In IDLE state
       if (current_state == s.STATE_IDLE):
         s.init_count.value = 0
+        s.input_count.value = 0
         s.end.value = 0
+        s.init.value = 0
         s.done.value = 0
+        if s.in_.val:
+          s.in_.rdy.value = 1
 
       # In INIT state
       if (current_state == s.STATE_INIT):
@@ -226,4 +234,12 @@ class SchedulerPRLT( Model ):
           s.task_queue.enq.val.value = 1
           s.gmem_resp.rdy.value = 1
           s.end.value = 1
+
+      # In Done state
+      if (current_state == s.STATE_DONE):
+        if out.rdy and s.red_resp.val:
+          out.msg.type_.value = 0
+          out.msg.resp.data.value = s.red_resp.msg.data
+          s.red_resp.rdy.value = 1
+          out.val.value = 1
 
