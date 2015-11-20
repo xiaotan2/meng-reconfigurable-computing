@@ -171,7 +171,7 @@ class SchedulerPRTL( Model ):
           next_state = s.STATE_START
 
       if ( curr_state == s.STATE_START ):
-        if ( s.input_count == s.size ):
+        if ( s.input_count == s.size-1 ):
           next_state = s.STATE_END
 
       if ( curr_state == s.STATE_END ):

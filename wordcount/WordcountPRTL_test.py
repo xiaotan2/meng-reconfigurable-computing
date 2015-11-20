@@ -97,7 +97,7 @@ basic_data      = [ 0x12, 0x23, 0x45, 0x35, 0x41, 0xab, 0xc7, 0x8d, 0x41, 0xf5 ]
 random_data = []
 result_rdm  = 0
 ref_rdm     = random.randint(0,0x1f)
-for i in xrange(100):
+for i in xrange(500):
   a = random.randint(0,0x1f)
   random_data.append(a)
   if ( a == ref_rdm ):
@@ -138,7 +138,7 @@ def run_test( wordcount, test_params, dump_vcd, test_verilog=False ):
                     dump_vcd, test_verilog )
 
   th.mem.write_mem( 0x1000, data_bytes )
-  run_sim( th, dump_vcd, max_cycles=50 )
+  run_sim( th, dump_vcd, max_cycles=5000 )
   
   
 @pytest.mark.parametrize( **test_case_table )
