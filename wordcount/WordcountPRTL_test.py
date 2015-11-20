@@ -27,7 +27,7 @@ class TestHarness (Model):
 
     # Instantiate Models
     s.src       = TestSource    ( WordcountReqMsg(),  src_msgs,  src_delay  )
-    s.wordcount = WordcountPRTL ()
+    s.wordcount = WordcountPRTL
     s.sink      = TestSink      ( WordcountRespMsg(), sink_msgs, sink_delay )
     s.mem       = TestMemory    ( MemMsg(8,32,32), 1, stall_prob, latency   )
 
@@ -71,6 +71,7 @@ def resp( type, data ):
   if type == 'rd': msg.type_ = WordcountReqMsg.TYPE_READ
   if type == 'wr': msg.type_ = WordcountReqMsg.TYPE_WRITE
   msg.data = data
+  return msg
   
 #-------------------------------------------------------------------------
 # Protocol 
@@ -122,7 +123,7 @@ def run_test( wordcount, test_params, dump_vcd, test_verilog=False ):
                     dump_vcd, test_verilog )
 
   th.mem.write_mem( 0x1000, data_bytes )
-  run_sim( th, dump_vcd, max_cycles=5000 )
+  run_sim( th, dump_vcd, max_cycles=50 )
   
   
 @pytest.mark.parametrize( **test_case_table )

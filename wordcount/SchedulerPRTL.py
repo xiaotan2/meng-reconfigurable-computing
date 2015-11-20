@@ -11,14 +11,14 @@ from WordcountMsg import WordcountReqMsg, WordcountRespMsg
 TYPE_READ = 0
 TYPE_WRITE = 1
 
-class SchedulerPRLT( Model ):
+class SchedulerPRTL( Model ):
 
   def __init__( s, mapper_num = 2, reducer_num = 1):
 
     # Top Level Interface
     s.in_ = InValRdyBundle  ( WordcountReqMsg() )
     s.out = OutValRdyBundle ( WordcountRespMsg() )
-    s.referece = InPort ( 32 )
+    s.reference = InPort ( 32 )
     s.base     = InPort ( 32 )
     s.size     = InPort ( 32 )
 
@@ -57,11 +57,19 @@ class SchedulerPRLT( Model ):
     s.init_count     = Wire ( 2 )
     s.input_count    = Wire ( 32 )
 
+    @s.tick
+    def counter():
+      if (s.init):
+        s.init_count.next = s.init_count + 1
+      if (s.gmem_req.val):
+        s.input_count.next = s.input_count + 1
+
     # Signals
     s.go             = Wire ( 1 ) # go signal tells scheduler to start scheduling
     s.mapper_done    = Wire ( 1 ) # if one or more mapper is done and send resp
     s.init           = Wire ( 1 ) # init signal indicates scheduler at initial state
     s.end            = Wire ( 1 ) # end signal indicates all task are loaded
+    s.done           = Wire ( 1 ) # done signal indicates everything is done
     s.num_task_queue = Wire ( 2 )
 
     s.connect(s.task_queue.num_free_entries, s.num_task_queue)
@@ -107,7 +115,7 @@ class SchedulerPRLT( Model ):
 
       # get the mapper response, assign the response to reducer
       if (s.idle_queue.enq.rdy and
-          s.mapper_done and s.red_req.rdy):
+          s.mapper_done and s.red_req[0].rdy):
 
         # Check each mapper response, add it to idle queue, send its response
         # to Reducer, mark its response ready
@@ -116,15 +124,15 @@ class SchedulerPRLT( Model ):
             s.idle_queue.enq.msg.value = i
             s.idle_queue.enq.val.value = 1
             if s.end and s.num_task_queue == 1:
-              s.red_req.msg.data.value = s.map_resp[i].msg.data
-              s.red_req.msg.type_.value = 1
-              s.red_req.val.value = 1
+              s.red_req[0].msg.data.value = s.map_resp[i].msg.data
+              s.red_req[0].msg.type_.value = 1
+              s.red_req[0].val.value = 1
               s.map_resp[i].rdy.value = 1
               s.done.value = 1
             else:
-              s.red_req.msg.data.value = s.map_resp[i].msg.data
-              s.red_req.msg.type_.value = 0
-              s.red_req.val.value = 1
+              s.red_req[0].msg.data.value = s.map_resp[i].msg.data
+              s.red_req[0].msg.type_.value = 0
+              s.red_req[0].val.value = 1
               s.map_resp[i].rdy.value = 1
             break
 
@@ -145,11 +153,11 @@ class SchedulerPRLT( Model ):
       if ( curr_state == s.STATE_SOURCE ):
         if ( s.go ):
           next_state = s.STATE_INIT
-        elif ( s.done ):
+        elif ( s.done and s.red_resp[0].val):
           next_state = s.STATE_IDLE
 
       if ( curr_state == s.STATE_INIT ):
-        if ( s.init_count == mapper_num ):
+        if ( s.init_count == mapper_num-1 ):
           next_state = s.STATE_START
 
       if ( curr_state == s.STATE_START ):
@@ -160,7 +168,7 @@ class SchedulerPRLT( Model ):
         if ( s.done ):
           next_state = s.STATE_SOURCE
 
-    s.state.in_.value = next_state
+      s.state.in_.value = next_state
 
     #---------------------------------------------------------------------
     # Task State Output Logic
@@ -169,9 +177,11 @@ class SchedulerPRLT( Model ):
     @s.combinational
     def state_outputs():
 
-      currenti_state = s.state.out
+      current_state = s.state.out
       s.gmem_req.val.value = 0
       s.gmem_resp.rdy.value = 0
+      s.in_.rdy.value = 0
+      s.out.val.value = 0
 
       # In IDLE state
       if (current_state == s.STATE_IDLE):
@@ -181,7 +191,12 @@ class SchedulerPRLT( Model ):
         s.init.value = 0
         s.done.value = 0
         if s.in_.val:
+          if (s.in_.msg.addr == 1):
+            s.base.value           = s.in_.msg.data
           s.in_.rdy.value = 1
+          s.out.msg.type_.value     = WordcountReqMsg.TYPE_WRITE
+          s.out.msg.data.value      = 0
+          s.out.val.value           = 1
 
       #In SOURCE state
       if (current_state == s.STATE_SOURCE):
@@ -189,8 +204,6 @@ class SchedulerPRLT( Model ):
           if (s.in_.msg.type_ == WordcountReqMsg.TYPE_WRITE):
             if (s.in_.msg.addr == 0):
               s.go.value      = 1
-            elif (s.in_.msg.addr == 1):
-              s.base.value               = s.in_.msg.data
             elif (s.in_.msg.addr == 2):
               s.size.value               = s.in_.msg.data
             elif (s.in_.msg.addr == 3):
@@ -202,11 +215,13 @@ class SchedulerPRLT( Model ):
             s.out.val.value           = 1
 
           elif (s.in_.msg.type_ == WordcountReqMsg.TYPE_READ):
-            s.out.msg.type_.value     = WordcountReqMsg.TYPE_READ
-            s.out.msg.data.value      = s.red_resp.msg.data
-            s.done.value              = 0
-            s.in_.rdy.value           = 1
-            s.out.val.value           = 1
+            if (s.done and s.red_resp[0].val):
+
+              s.out.msg.type_.value     = WordcountReqMsg.TYPE_READ
+              s.out.msg.data.value      = s.red_resp[0].msg.data
+              s.red_resp[0].rdy.value   = 1
+              s.in_.rdy.value           = 1
+              s.out.val.value           = 1
 
       # In INIT state
       if (current_state == s.STATE_INIT):
@@ -221,7 +236,6 @@ class SchedulerPRLT( Model ):
           s.map_req[s.init_count].val.value = 1
           s.idle_queue.enq.msg.value = s.init_count
           s.idle_queue.enq.val.value = 1
-          s.init_count.value = s.init_count + 1
 
         # at the last 2 cycle of init, send read req to global memory
         if s.init_count == mapper_num - 2:
@@ -229,7 +243,6 @@ class SchedulerPRLT( Model ):
             s.gmem_req.msg.addr.value = s.base + (4 * s.input_count)
             s.gmem_req.msg.type_.value = TYPE_READ
             s.gmem_req.val.value = 1
-            s.input_count = s.input_count + 1
 
         # at the last cycle of init, receive read resp to global memory, put it in task queue
         # send another read req to global memory
@@ -241,7 +254,6 @@ class SchedulerPRLT( Model ):
             s.gmem_req.msg.addr.value = s.base + (4 * s.input_count)
             s.gmem_req.msg.type_.value = TYPE_READ
             s.gmem_req.val.value = 1
-            s.input_count = s.input_count + 1
 
       # In START state
       if (current_state == s.STATE_START):
@@ -255,7 +267,6 @@ class SchedulerPRLT( Model ):
           s.gmem_req.msg.addr.value = s.base + (4 * s.input_count)
           s.gmem_req.msg.type_.value = TYPE_READ
           s.gmem_req.val.value = 1
-          s.input_count = s.input_count + 1
 
       # In END state
       if (current_state == s.STATE_END):
@@ -265,3 +276,19 @@ class SchedulerPRLT( Model ):
           s.gmem_resp.rdy.value = 1
           s.end.value = 1
 
+  # Line Trace
+  def line_trace( s ):
+
+    state_str = "? "
+    if s.state.out == s.STATE_IDLE:
+      state_str = "IDLE "
+    if s.state.out == s.STATE_SOURCE:
+      state_str = "S "
+    if s.state.out == s.STATE_INIT:
+      state_str = "INIT "
+    if s.state.out == s.STATE_START:
+      state_str = "ST "
+    if s.state.out == s.STATE_END:
+      state_str = "END "
+
+    return "{} {} {} {}".format( state_str, s.init_count, s.map_req[0].val, s.map_req[1].val )

@@ -3,14 +3,14 @@ from pymtl       import *
 from pclib.ifcs  import InValRdyBundle, OutValRdyBundle
 from pclib.ifcs import MemReqMsg, MemRespMsg
 from MapperMsg  import MapperReqMsg, MapperRespMsg
-from ReducerMsg import ReducerReqMsg
+from ReducerMsg import ReducerReqMsg, ReducerRespMsg
 from SchedulerPRTL import *
 from MapperPRTL    import *
 from ReducerPRTL   import *
 
 class WordcountPRTL( Model ):
 
-  def __init__( s, mapper_num = 2, reducer_num = 2):
+  def __init__( s, mapper_num = 2, reducer_num = 1):
 
     # Interface
 
@@ -47,4 +47,8 @@ class WordcountPRTL( Model ):
       s.wcresp,          s.sche.out,
     )
 
-
+  def line_trace(s):
+    return s.sche.line_trace()       + " > " + \
+           s.map[0].line_trace()        + " > " + \
+           s.map[1].line_trace()        + " > " + \
+           s.red[0].line_trace()   

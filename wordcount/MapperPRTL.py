@@ -135,7 +135,7 @@ class MapperCtrlRTL( Model ):
 #====================================================================
 # Mapper Top Level
 #====================================================================
-class MapperRTL( Model ):
+class MapperPRTL( Model ):
 
   # Constructor
   def __init__( s, nbits = 8, mbits = 1 ):

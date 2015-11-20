@@ -12,7 +12,7 @@ from pclib.test import mk_test_case_table, run_sim
 from pclib.test import TestSource, TestSink
 
 from MapperMsg  import MapperReqMsg, MapperRespMsg
-from MapperPRTL import MapperRTL
+from MapperPRTL import MapperPRTL
 
 #-------------------------------------------------------------------------
 # TestHarness
@@ -124,7 +124,7 @@ test_case_table = mk_test_case_table([
 
 @pytest.mark.parametrize( **test_case_table )
 def test( test_params, dump_vcd ):
-  run_sim( TestHarness( MapperRTL,
+  run_sim( TestHarness( MapperPRTL,
                         test_params.msgs[::2], test_params.msgs[1::2],
                         test_params.src_delay, test_params.sink_delay ),
            dump_vcd )
