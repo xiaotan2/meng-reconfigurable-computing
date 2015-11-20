@@ -171,8 +171,10 @@ class MapperPRTL( Model ):
     state_str = "?  "
     if s.ctrl.state.out == s.ctrl.STATE_IDLE:
       state_str = "I  "
-    if s.ctrl.state.out == s.ctrl.STATE_CMP:
+    if s.ctrl.state.out == s.ctrl.STATE_CMP and s.ctrl.resp_msg_type == 0:
       state_str = "CMP"
+    if s.ctrl.state.out == s.ctrl.STATE_CMP and s.ctrl.resp_msg_type == 1:
+      state_str = "REF"
 
     return "{} ({} {}=?{}->{} {}) {}".format(
       s.req,

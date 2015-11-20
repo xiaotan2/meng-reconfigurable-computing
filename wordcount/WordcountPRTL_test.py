@@ -91,15 +91,17 @@ def gen_protocol_msgs( size, ref, result ):
 # Test Case: basic
 #-------------------------------------------------------------------------
 
-basic_data = [ 0x12, 0x23, 0x45, 0x35, 0x41, 0xab, 0xc7, 0x8d, 0x41, 0xf5 ]
+very_basic_data = [ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a ]
+basic_data      = [ 0x12, 0x23, 0x45, 0x35, 0x41, 0xab, 0xc7, 0x8d, 0x41, 0xf5 ]
 
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
 
 test_case_table = mk_test_case_table([
-  (               "data        ref   result  stall  latency  src_delay  sink_delay" ),
-  [ "basic_0x0x0", basic_data, 0x41, 2,      0,     0,       0,         0           ], 
+  (                 "data            ref   result  stall  latency  src_delay  sink_delay" ),
+  [ "vbasic_0x0x0", very_basic_data, 0x02, 1,      0,     0,       0,         0           ], 
+  [ "basic_0x0x0",  basic_data,      0x41, 2,      0,     0,       0,         0           ], 
 ])
 
 #-------------------------------------------------------------------------
