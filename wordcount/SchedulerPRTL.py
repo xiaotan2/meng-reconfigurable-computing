@@ -89,7 +89,11 @@ class SchedulerPRTL( Model ):
       for i in xrange(mapper_num):
         s.map_req[i].val.value = 0
 
-      if ~s.init:
+      if s.init:
+        s.map_req[s.init_count].msg.data.value = s.reference
+        s.map_req[s.init_count].msg.type_.value = 1
+        s.map_req[s.init_count].val.value = 1
+      else:
       # assign task to mapper if task queue is ready to dequeue
       # idle queue is ready to dequeue and mapper is ready to take request
         if (s.task_queue.deq.val and s.idle_queue.deq.val and
@@ -233,9 +237,6 @@ class SchedulerPRTL( Model ):
         # if mapper is rdy, send input info to mapper, and enq its id to idle queue
         if (s.init_count != mapper_num and s.map_req[s.init_count].rdy and
             s.idle_queue.enq.rdy):
-          s.map_req[s.init_count].msg.data.value = s.reference
-          s.map_req[s.init_count].msg.type_.value = 1
-          s.map_req[s.init_count].val.value = 1
           s.idle_queue.enq.msg.value = s.init_count
           s.idle_queue.enq.val.value = 1
 
@@ -293,4 +294,6 @@ class SchedulerPRTL( Model ):
     if s.state.out == s.STATE_END:
       state_str = "END "
 
-    return "{} {} {} {}".format( state_str, s.init_count, s.map_req[0].val, s.map_req[1].val )
+    return "( {}|m1:{}|m2:{}|r{}|g{} )".format( state_str, s.map_req[0].val, 
+                                    s.map_req[1].val, s.red_req[0].val,
+                                    s.gmem_req.val)
