@@ -158,14 +158,14 @@ class ReducerPRTL (Model):
     s.dpath   = ReducerDpath()
     s.ctrl    = ReducerCtrl() 
 
-    s.connect( s.req.msg.data,    s.dpath.req_msg_data )
-    s.connect( s.req.msg.type_,   s.ctrl.req_msg_type  )
-    s.connect( s.req.val,         s.ctrl.req_val       )
-    s.connect( s.req.rdy,         s.ctrl.req_rdy       )
+    s.connect( s.req.msg.data,        s.dpath.req_msg_data )
+    s.connect( s.req.msg.type_,       s.ctrl.req_msg_type  )
+    s.connect( s.req.val,             s.ctrl.req_val       )
+    s.connect( s.req.rdy,             s.ctrl.req_rdy       )
   
-    s.connect( s.dpath.resp_msg,  s.resp.msg           )
-    s.connect( s.ctrl.resp_val,   s.resp.val           )
-    s.connect( s.ctrl.resp_rdy,   s.resp.rdy           )
+    s.connect( s.dpath.resp_msg_data, s.resp.msg.data      )
+    s.connect( s.ctrl.resp_val,       s.resp.val           )
+    s.connect( s.ctrl.resp_rdy,       s.resp.rdy           )
 
     s.connect_auto( s.dpath, s.ctrl )
 
