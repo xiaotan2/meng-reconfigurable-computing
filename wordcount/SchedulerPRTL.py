@@ -59,7 +59,7 @@ class SchedulerPRTL( Model ):
 
     @s.tick
     def counter():
-      if (s.init):
+      if (s.idle_queue.enq.val and s.init):
         s.init_count.next = s.init_count + 1
       if (s.gmem_req.val):
         s.input_count.next = s.input_count + 1
@@ -188,6 +188,7 @@ class SchedulerPRTL( Model ):
         s.init_count.value = 0
         s.input_count.value = 0
         s.end.value = 0
+        s.go.value = 0
         s.init.value = 0
         s.done.value = 0
         if s.in_.val:
@@ -227,6 +228,7 @@ class SchedulerPRTL( Model ):
       if (current_state == s.STATE_INIT):
 
         s.init.value = 1
+        s.go.value   = 0
 
         # if mapper is rdy, send input info to mapper, and enq its id to idle queue
         if (s.init_count != mapper_num and s.map_req[s.init_count].rdy and
@@ -281,13 +283,13 @@ class SchedulerPRTL( Model ):
 
     state_str = "? "
     if s.state.out == s.STATE_IDLE:
-      state_str = "IDLE "
+      state_str = "IDLE"
     if s.state.out == s.STATE_SOURCE:
-      state_str = "S "
+      state_str = "S   "
     if s.state.out == s.STATE_INIT:
-      state_str = "INIT "
+      state_str = "INIT"
     if s.state.out == s.STATE_START:
-      state_str = "ST "
+      state_str = "ST  "
     if s.state.out == s.STATE_END:
       state_str = "END "
 
