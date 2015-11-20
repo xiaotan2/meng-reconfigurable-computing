@@ -10,7 +10,7 @@ from pclib.test  import mk_test_case_table, run_sim
 from pclib.test  import TestSource, TestSink
 
 from ReducerPRTL import ReducerPRTL
-from ReducerMsg  import ReducerReqMsg
+from ReducerMsg  import ReducerReqMsg, ReducerRespMsg
 
 #-------------------------------------------------------------------------
 # TestHarness
@@ -22,9 +22,9 @@ class TestHarness (Model):
                dump_vcd=False, test_verilog=False ):
 
     # Instantiate Models
-    s.src     = TestSource  ( ReducerReqMsg(), src_msgs,  src_delay  )
+    s.src     = TestSource  ( ReducerReqMsg(),  src_msgs,  src_delay  )
     s.reducer = ReducerPRTL ()
-    s.sink    = TestSink    ( Bits(32),        sink_msgs, sink_delay )
+    s.sink    = TestSink    ( ReducerRespMsg(), sink_msgs, sink_delay )
 
     # Dump VCD
     if dump_vcd:
@@ -57,12 +57,21 @@ def mk_req_msg( data, type ):
   return msg
 
 #-------------------------------------------------------------------------
+# mk_resp_msg
+#-------------------------------------------------------------------------
+
+def mk_resp_msg( data ):
+  msg       = ReducerRespMsg()
+  msg.data  = data
+  return msg
+
+#-------------------------------------------------------------------------
 # Test Case: basic
 #-------------------------------------------------------------------------
 
 basic_msgs = [
-  mk_req_msg( 1, 1 ), 1, 
-  mk_req_msg( 0, 1 ), 0,
+  mk_req_msg( 1, 1 ), mk_resp_msg( 1 ), 
+  mk_req_msg( 0, 1 ), mk_resp_msg( 0 ),
 ]
 
 #-------------------------------------------------------------------------

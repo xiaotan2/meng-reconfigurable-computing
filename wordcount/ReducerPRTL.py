@@ -5,7 +5,7 @@
 from pymtl         import *
 from pclib.ifcs    import InValRdyBundle, OutValRdyBundle
 from pclib.rtl     import RegEn, Mux, Adder, ZeroExtender, RegRst
-from ReducerMsg    import ReducerReqMsg
+from ReducerMsg    import ReducerReqMsg, ReducerRespMsg
 
 #=========================================================================
 # Reducer Datapath
@@ -15,10 +15,10 @@ class ReducerDpath (Model):
 
   def __init__ ( s ):
    
-    s.req_msg_data  = InPort (1)
-    s.resp_msg      = OutPort(32)
-    s.sel           = InPort (1)
-    s.en            = InPort (1)
+    s.req_msg_data   = InPort (1)
+    s.resp_msg_data  = OutPort(32)
+    s.sel            = InPort (1)
+    s.en             = InPort (1)
 
     # Input Mux    
     s.reg_out = Wire(32)
@@ -57,7 +57,9 @@ class ReducerDpath (Model):
     })
 
     # Connect to output port
-    s.connect( s.reg_out, s.resp_msg )
+    s.connect( s.reg_out, s.resp_msg_data )
+    
+
 
 
 
@@ -150,20 +152,20 @@ class ReducerPRTL (Model):
 
   def __init__ ( s ):
    
-    s.req     = InValRdyBundle  ( ReducerReqMsg() )
-    s.resp    = OutValRdyBundle ( Bits(32) )
+    s.req     = InValRdyBundle  ( ReducerReqMsg()  )
+    s.resp    = OutValRdyBundle ( ReducerRespMsg() )
  
     s.dpath   = ReducerDpath()
     s.ctrl    = ReducerCtrl() 
 
-    s.connect( s.req.msg.data,    s.dpath.req_msg_data )
-    s.connect( s.req.msg.type_,   s.ctrl.req_msg_type  )
-    s.connect( s.req.val,         s.ctrl.req_val       )
-    s.connect( s.req.rdy,         s.ctrl.req_rdy       )
+    s.connect( s.req.msg.data,        s.dpath.req_msg_data )
+    s.connect( s.req.msg.type_,       s.ctrl.req_msg_type  )
+    s.connect( s.req.val,             s.ctrl.req_val       )
+    s.connect( s.req.rdy,             s.ctrl.req_rdy       )
   
-    s.connect( s.dpath.resp_msg,  s.resp.msg           )
-    s.connect( s.ctrl.resp_val,   s.resp.val           )
-    s.connect( s.ctrl.resp_rdy,   s.resp.rdy           )
+    s.connect( s.dpath.resp_msg_data, s.resp.msg.data      )
+    s.connect( s.ctrl.resp_val,       s.resp.val           )
+    s.connect( s.ctrl.resp_rdy,       s.resp.rdy           )
 
     s.connect_auto( s.dpath, s.ctrl )
 

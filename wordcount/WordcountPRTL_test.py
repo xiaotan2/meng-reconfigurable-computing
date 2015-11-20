@@ -22,13 +22,14 @@ from WordcountMsg    import WordcountReqMsg, WordcountRespMsg
 class TestHarness (Model):
 
   def __init__( s, WordcountPRTL, src_msgs, sink_msgs,
-               src_delay, sink_delay,
+               stall_prob, latency, src_delay, sink_delay,
                dump_vcd=False, test_verilog=False ):
 
     # Instantiate Models
     s.src       = TestSource    ( WordcountReqMsg(),  src_msgs,  src_delay  )
     s.wordcount = WordcountPRTL ()
     s.sink      = TestSink      ( WordcountRespMsg(), sink_msgs, sink_delay )
+    s.mem       = TestMemory    ( MemMsg(8,32,32), 1, stall_prob, latency   )
 
     # Dump VCD
     if dump_vcd:
@@ -39,9 +40,10 @@ class TestHarness (Model):
       s.wordcount = TranslationTool( s.wordcount )
 
     # Connect
-    s.connect( s.src.out,        s.wordcount.req )
-    s.connect( s.wordcount.resp, s.sink.in_      )
-    
+    s.connect( s.src.out,           s.wordcount.wcreq )
+    s.connect( s.wordcount.wcresp,  s.sink.in_        )
+    s.connect( s.wordcount.memreq,  s.mem.reqs[0]     )
+    s.connect( s.wordcount.memresp, s.mem.resps[0]    )
 
   def done(s):
     return s.src.done and s.sink.done
@@ -51,42 +53,78 @@ class TestHarness (Model):
            s.wordcount.line_trace() + " > " + \
            s.sink.line_trace()    
 
+
 #-------------------------------------------------------------------------
-# mk_req_msg
+# make msgs
 #-------------------------------------------------------------------------
 
-def mk_req_msg( data, type ):
-  msg       = ReducerReqMsg()
-  msg.data  = data
-  msg.type_ = type
+def req( type, addr, data ):
+  msg      = WordcountReqMsg()
+  if type == 'rd': msg.type_ = WordcountReqMsg.TYPE_READ
+  if type == 'wr': msg.type_ = WordcountReqMsg.TYPE_WRITE
+  msg.addr = addr
+  msg.data = data
   return msg
+
+def resp( type, data ):
+  msg      = WordcountRespMsg()
+  if type == 'rd': msg.type_ = WordcountReqMsg.TYPE_READ
+  if type == 'wr': msg.type_ = WordcountReqMsg.TYPE_WRITE
+  msg.data = data
+  
+#-------------------------------------------------------------------------
+# Protocol 
+#-------------------------------------------------------------------------
+
+def gen_protocol_msgs( size, ref, result ):
+  return [
+    req( 'wr', 1, 0x1000 ), resp( 'wr', 0      ),
+    req( 'wr', 2, size   ), resp( 'wr', 0      ),
+    req( 'wr', 3, ref    ), resp( 'wr', 0      ),
+    req( 'wr', 0, 0      ), resp( 'wr', 0      ),
+    req( 'rd', 0, 0      ), resp( 'rd', result ),
+  ]
+
 
 #-------------------------------------------------------------------------
 # Test Case: basic
 #-------------------------------------------------------------------------
 
-basic_msgs = [
-  mk_req_msg( 1, 1 ), 1, 
-  mk_req_msg( 0, 1 ), 0,
-]
+basic_data = [ 0x12, 0x23, 0x45, 0x35, 0x41, 0xab, 0xc7, 0x8d, 0x41, 0xf5 ]
 
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
 
 test_case_table = mk_test_case_table([
-  (               "msgs       src_delay  sink_delay" ),
-  [ "basic_0x0",  basic_msgs, 0,         0           ], 
+  (               "data        ref   result  stall  latency  src_delay  sink_delay" ),
+  [ "basic_0x0x0", basic_data, 0x41, 2,      0,     0,       0,         0           ], 
 ])
 
 #-------------------------------------------------------------------------
-# Test cases
+# Run Test
 #-------------------------------------------------------------------------
 
+def run_test( wordcount, test_params, dump_vcd, test_verilog=False ):
+
+  data       = test_params.data
+  ref        = test_params.ref
+  result     = test_params.result
+  data_bytes = struct.pack("<{}I".format(len(data)), *data)
+  
+  wordcount_protocol_msgs = gen_protocol_msgs( len(data), ref, result )
+  wordcount_reqs          = wordcount_protocol_msgs[::2]
+  wordcount_resps         = wordcount_protocol_msgs[1::2]
+
+  th = TestHarness( wordcount, wordcount_reqs, wordcount_resps, 
+                    test_params.stall, test_params.latency,
+                    test_params.src_delay, test_params.sink_delay,
+                    dump_vcd, test_verilog )
+
+  th.mem.write_mem( 0x1000, data_bytes )
+  run_sim( th, dump_vcd, max_cycles=5000 )
+  
+  
 @pytest.mark.parametrize( **test_case_table )
 def test( test_params, dump_vcd ):
-  run_sim( TestHarness( WordcountPRTL,
-                        test_params.msgs[::2], test_params.msgs[1::2],
-                        test_params.src_delay, test_params.sink_delay ),
-           dump_vcd )
-
+  run_test( WordcountPRTL(), test_params, dump_vcd )
