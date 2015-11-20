@@ -93,6 +93,8 @@ class SchedulerPRTL( Model ):
         s.map_req[s.init_count].msg.data.value = s.reference
         s.map_req[s.init_count].msg.type_.value = 1
         s.map_req[s.init_count].val.value = 1
+        s.idle_queue.enq.msg.value = s.init_count
+        s.idle_queue.enq.val.value = 1
       else:
       # assign task to mapper if task queue is ready to dequeue
       # idle queue is ready to dequeue and mapper is ready to take request
@@ -118,26 +120,27 @@ class SchedulerPRTL( Model ):
         s.red_req[i].val.value = 0
 
       # get the mapper response, assign the response to reducer
-      if (s.idle_queue.enq.rdy and
-          s.mapper_done and s.red_req[0].rdy):
+      if (s.mapper_done):
 
         # Check each mapper response, add it to idle queue, send its response
         # to Reducer, mark its response ready
         for i in xrange(mapper_num):
           if(s.map_resp[i].val):
-            s.idle_queue.enq.msg.value = i
-            s.idle_queue.enq.val.value = 1
-            if s.end and s.num_task_queue == 1:
-              s.red_req[0].msg.data.value = s.map_resp[i].msg.data
-              s.red_req[0].msg.type_.value = 1
-              s.red_req[0].val.value = 1
-              s.map_resp[i].rdy.value = 1
-              s.done.value = 1
-            else:
-              s.red_req[0].msg.data.value = s.map_resp[i].msg.data
-              s.red_req[0].msg.type_.value = 0
-              s.red_req[0].val.value = 1
-              s.map_resp[i].rdy.value = 1
+            if ~s.init:
+              if s.idle_queue.enq.rdy:
+                s.idle_queue.enq.msg.value = i
+                s.idle_queue.enq.val.value = 1
+              if s.red_req[0].rdy:
+                if s.end and s.num_task_queue == 1:
+                  s.red_req[0].msg.data.value = s.map_resp[i].msg.data
+                  s.red_req[0].msg.type_.value = 1
+                  s.red_req[0].val.value = 1
+                  s.done.value = 1
+                else:
+                  s.red_req[0].msg.data.value = s.map_resp[i].msg.data
+                  s.red_req[0].msg.type_.value = 0
+                  s.red_req[0].val.value = 1
+            s.map_resp[i].rdy.value = 1
             break
 
     #---------------------------------------------------------------------
@@ -234,12 +237,6 @@ class SchedulerPRTL( Model ):
         s.init.value = 1
         s.go.value   = 0
 
-        # if mapper is rdy, send input info to mapper, and enq its id to idle queue
-        if (s.init_count != mapper_num and s.map_req[s.init_count].rdy and
-            s.idle_queue.enq.rdy):
-          s.idle_queue.enq.msg.value = s.init_count
-          s.idle_queue.enq.val.value = 1
-
         # at the last 2 cycle of init, send read req to global memory
         if s.init_count == mapper_num - 2:
           if s.gmem_req.rdy:
@@ -294,6 +291,6 @@ class SchedulerPRTL( Model ):
     if s.state.out == s.STATE_END:
       state_str = "END "
 
-    return "( {}|m1:{}|m2:{}|r{}|g{} )".format( state_str, s.map_req[0].val, 
+    return "( {}|m1:{}|m2:{}|r{}|g{}|{}|{}|{} )".format( state_str, s.map_req[0].val, 
                                     s.map_req[1].val, s.red_req[0].val,
-                                    s.gmem_req.val)
+                                    s.gmem_req.val, s.map_resp[1].val, s.map_resp[1].rdy, s.map_req[1].rdy)
