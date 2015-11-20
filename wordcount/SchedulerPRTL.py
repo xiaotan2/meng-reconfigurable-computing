@@ -6,6 +6,7 @@ from pclib.ifcs import MemReqMsg, MemRespMsg
 from pclib.rtl  import RegRst, RegisterFile, NormalQueue, RoundRobinArbiter
 from MapperMsg  import MapperReqMsg, MapperRespMsg
 from ReducerMsg import ReducerReqMsg, ReducerRespMsg
+from WordcountMsg import WordcountReqMsg, WordcountRespMsg
 
 TYPE_READ = 0
 TYPE_WRITE = 1
@@ -15,8 +16,8 @@ class SchedulerPRLT( Model ):
   def __init__( s, mapper_num = 2, reducer_num = 1):
 
     # Top Level Interface
-    s.in_ = InValRdyBundle ()
-    s.out = OutValRdyBundle ()
+    s.in_ = InValRdyBundle  ( WordcountReqMsg() )
+    s.out = OutValRdyBundle ( WordcountRespMsg() )
     s.referece = InPort ( 32 )
     s.base     = InPort ( 32 )
     s.size     = InPort ( 32 )
@@ -45,10 +46,10 @@ class SchedulerPRLT( Model ):
 
     # States
     s.STATE_IDLE   = 0    # Idle state, scheduler waiting for top level to start
-    s.STATE_INIT   = 1    # Init state, scheduler assigns input info to each Mapper
-    s.STATE_START  = 2    # Start state, scheduler starts scheduling
-    s.STATE_END    = 3    # End state, shceduler loads all task from global memory and it is done
-    s.STATE_DONE   = 4    # Done state, scheduler sends response to Test Sink
+    s.STATE_SOURCE = 1    # Source state, handling with Test Source, getting base, size, ref info
+    s.STATE_INIT   = 2    # Init state, scheduler assigns input info to each Mapper
+    s.STATE_START  = 3    # Start state, scheduler starts scheduling
+    s.STATE_END    = 4    # End state, shceduler loads all task from global memory and it is done
 
     s.state       = RegRst( 4, reset_value = s.STATE_IDLE )
 
@@ -57,6 +58,7 @@ class SchedulerPRLT( Model ):
     s.input_count    = Wire ( 32 )
 
     # Signals
+    s.go             = Wire ( 1 ) # go signal tells scheduler to start scheduling
     s.mapper_done    = Wire ( 1 ) # if one or more mapper is done and send resp
     s.init           = Wire ( 1 ) # init signal indicates scheduler at initial state
     s.end            = Wire ( 1 ) # end signal indicates all task are loaded
@@ -138,6 +140,10 @@ class SchedulerPRLT( Model ):
 
       if ( curr_state == s.STATE_IDLE ):
         if ( s.in_.val ):
+          next_state = s.STATE_SOURCE
+
+      if ( curr_state == s.STATE_SOURCE ):
+        if ( s.init_count == mapper_num ):
           next_state = s.STATE_INIT
 
       if ( curr_state == s.STATE_INIT ):
@@ -150,10 +156,7 @@ class SchedulerPRLT( Model ):
 
       if ( curr_state == s.STATE_END ):
         if ( s.done ):
-          next_state = s.STATE_DONE
-
-      if ( curr_state == s.STATE_DONE ):
-        next_state = s.STATE_IDLE
+          next_state = s.STATE_SOURCE
 
     s.state.in_.value = next_state
 
@@ -177,6 +180,31 @@ class SchedulerPRLT( Model ):
         s.done.value = 0
         if s.in_.val:
           s.in_.rdy.value = 1
+
+      #In SOURCE state
+      if (current_state == s.STATE_SOURCE):
+        if (s.in_.val and s.out.rdy):
+          if (s.in_.msg.type_ == WordcountReqMsg.TYPE_WRITE):
+            if (s.in_.msg.addr == 0):
+              s.go.value      = 1
+            elif (s.in_.msg.addr == 1):
+              s.base.value               = s.in_.msg.data
+            elif (s.in_.msg.addr == 2):
+              s.size.value               = s.in_.msg.data
+            elif (s.in_.msg.addr == 3):
+              s.reference.value          = s.in_.msg.data
+            # Send xcel response message
+            s.in_.rdy.value           = 1
+            s.out.msg.type_.value     = WordcountReqMsg.TYPE_WRITE
+            s.out.msg.data.value      = 0
+            s.out.val.value           = 1
+
+          elif (s.in_.msg.type_ == WordcountReqMsg.TYPE_READ):
+            s.out.msg.type_.value     = WordcountReqMsg.TYPE_READ
+            s.out.msg.data.value      = s.red_resp.msg.data
+            s.done.value              = 0
+            s.in_.rdy.value           = 1
+            s.out.val.value           = 1
 
       # In INIT state
       if (current_state == s.STATE_INIT):
@@ -234,12 +262,4 @@ class SchedulerPRLT( Model ):
           s.task_queue.enq.val.value = 1
           s.gmem_resp.rdy.value = 1
           s.end.value = 1
-
-      # In Done state
-      if (current_state == s.STATE_DONE):
-        if out.rdy and s.red_resp.val:
-          out.msg.type_.value = 0
-          out.msg.resp.data.value = s.red_resp.msg.data
-          s.red_resp.rdy.value = 1
-          out.val.value = 1
 
