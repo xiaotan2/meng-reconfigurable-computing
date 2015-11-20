@@ -88,6 +88,8 @@ class SchedulerPRTL( Model ):
       # initialize mapper req and resp handshake signals
       for i in xrange(mapper_num):
         s.map_req[i].val.value = 0
+      s.task_queue.deq.rdy.value = 0
+      s.idle_queue.deq.rdy.value = 0
 
       if s.init:
         s.map_req[s.init_count].msg.data.value = s.reference
@@ -118,6 +120,7 @@ class SchedulerPRTL( Model ):
         s.map_resp[i].rdy.value = 0
       for i in xrange(reducer_num):
         s.red_req[i].val.value = 0
+      #s.idle_queue.enq.val.value = 0
 
       # get the mapper response, assign the response to reducer
       if (s.mapper_done):
@@ -131,7 +134,7 @@ class SchedulerPRTL( Model ):
                 s.idle_queue.enq.msg.value = i
                 s.idle_queue.enq.val.value = 1
               if s.red_req[0].rdy:
-                if s.end and s.num_task_queue == 1:
+                if s.end and s.num_task_queue == 2:
                   s.red_req[0].msg.data.value = s.map_resp[i].msg.data
                   s.red_req[0].msg.type_.value = 1
                   s.red_req[0].val.value = 1
@@ -189,6 +192,7 @@ class SchedulerPRTL( Model ):
       s.gmem_resp.rdy.value = 0
       s.in_.rdy.value = 0
       s.out.val.value = 0
+      s.task_queue.enq.val.value = 0
 
       # In IDLE state
       if (current_state == s.STATE_IDLE):
@@ -293,4 +297,4 @@ class SchedulerPRTL( Model ):
 
     return "( {}|m1:{}|m2:{}|r{}|g{}|{}|{}|{} )".format( state_str, s.map_req[0].val, 
                                     s.map_req[1].val, s.red_req[0].val,
-                                    s.gmem_req.val, s.map_resp[1].val, s.map_resp[1].rdy, s.map_req[1].rdy)
+                                    s.gmem_req.val, s.idle_queue.enq.val, s.num_task_queue, s.task_queue.deq.rdy)
