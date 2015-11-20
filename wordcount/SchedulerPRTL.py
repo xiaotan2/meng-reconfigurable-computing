@@ -115,7 +115,7 @@ class SchedulerPRLT( Model ):
           if(s.map_resp[i].val):
             s.idle_queue.enq.msg.value = i
             s.idle_queue.enq.val.value = 1
-            if s.end and s.num_task_queue == 0:
+            if s.end and s.num_task_queue == 1:
               s.red_req.msg.data.value = s.map_resp[i].msg.data
               s.red_req.msg.type_.value = 1
               s.red_req.val.value = 1
@@ -143,15 +143,17 @@ class SchedulerPRLT( Model ):
           next_state = s.STATE_SOURCE
 
       if ( curr_state == s.STATE_SOURCE ):
-        if ( s.init_count == mapper_num ):
+        if ( s.go ):
           next_state = s.STATE_INIT
+        elif ( s.done ):
+          next_state = s.STATE_IDLE
 
       if ( curr_state == s.STATE_INIT ):
         if ( s.init_count == mapper_num ):
           next_state = s.STATE_START
 
       if ( curr_state == s.STATE_START ):
-        if ( s.input_counti == s.size ):
+        if ( s.input_count == s.size ):
           next_state = s.STATE_END
 
       if ( curr_state == s.STATE_END ):
