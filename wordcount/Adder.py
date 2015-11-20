@@ -7,9 +7,6 @@ from pymtl  import *
 
 class Adder ( VerilogModel ):
   
-  vprefix    = ""
-  vlinetrace = True
-
   def __init__ ( s ):
    
     s.in0 = InPort  ( Bits(16) )
