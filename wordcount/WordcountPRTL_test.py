@@ -91,17 +91,30 @@ def gen_protocol_msgs( size, ref, result ):
 # Test Case: basic
 #-------------------------------------------------------------------------
 
-very_basic_data = [ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a ]
+very_basic_data = [ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x02 ]
 basic_data      = [ 0x12, 0x23, 0x45, 0x35, 0x41, 0xab, 0xc7, 0x8d, 0x41, 0xf5 ]
+
+random_data = []
+result_rdm  = 0
+ref_rdm     = random.randint(0,0x1f)
+for i in xrange(100):
+  a = random.randint(0,0x1f)
+  random_data.append(a)
+  if ( a == ref_rdm ):
+    result_rdm = result_rdm + 1
+
+  
+
 
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
 
 test_case_table = mk_test_case_table([
-  (                 "data            ref   result  stall  latency  src_delay  sink_delay" ),
-  [ "vbasic_0x0x0", very_basic_data, 0x02, 1,      0,     0,       0,         0           ], 
-  [ "basic_0x0x0",  basic_data,      0x41, 2,      0,     0,       0,         0           ], 
+  (                 "data            ref    result       stall  latency  src_delay  sink_delay" ),
+  [ "vbasic_0x0x0", very_basic_data, 0x02,    2,           0,     0,       0,         0         ], 
+  [ "basic_0x0x0",  basic_data,      0x41,    2,           0,     0,       0,         0         ],
+  [ "random_0x0x0", random_data,     ref_rdm, result_rdm,  0,     0,       0,         0         ], 
 ])
 
 #-------------------------------------------------------------------------
