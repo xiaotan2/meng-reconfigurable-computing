@@ -11,29 +11,31 @@ from pymtl import *
 class ReducerReqMsg( BitStructDefinition ):
 
   def __init__( s ):
-    s.data  = BitField(1)
-    s.type_ = BitField(1)
+    s.data  = BitField(49)
+    s.digit = BitField( 4)
 
-  def mk_msg( s, data, type ):
+  def mk_msg( s, data, digit ):
     msg       = s()
     msg.data  = data
-    msg.type_ = type
+    msg.digit = digit
     return msg
 
   def __str__( s ):
-    return "{}:{}".format( s.data, s.type_ )
+    return "{}:{}".format( s.data, s.digit )
 
 class ReducerRespMsg( BitStructDefinition ):
   
 
   def __init__( s ):
-    s.data  = BitField(32)
+    s.data  = BitField(49)
+    s.digit = BitField( 4)
 
-  def mk_msg( s, data ):
+  def mk_msg( s, data, digit ):
     msg       = s()
     msg.data  = data
+    msg.digit = digit
     return msg
 
   def __str__( s ):
-    return "{}".format( s.data )
+    return "{}:{}".format( s.data, s.digit )
 
