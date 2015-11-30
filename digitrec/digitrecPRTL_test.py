@@ -29,7 +29,7 @@ class TestHarness (Model):
     s.src       = TestSource    ( digitrecReqMsg(),  src_msgs,  src_delay  )
     s.di        = digitrecPRTL
     s.sink      = TestSink      ( digitrecRespMsg(), sink_msgs, sink_delay )
-    s.mem       = TestMemory    ( MemMsg(8,32,32), 1, stall_prob, latency   )
+    s.mem       = TestMemory    ( MemMsg(8,32,49), 1, stall_prob, latency   )
 
     # Dump VCD
     if dump_vcd:
