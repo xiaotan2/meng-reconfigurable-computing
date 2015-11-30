@@ -12,25 +12,19 @@ from pclib.test  import TestSource, TestSink
 from ReducerPRTL import ReducerPRTL
 from ReducerMsg  import ReducerReqMsg, ReducerRespMsg
 
-from pclib.test  import TestMemory
-from pclib.ifcs  import MemMsg, MemReqMsg, MemRespMsg
-
-MEM_DATA_SIZE = 16
-
 #-------------------------------------------------------------------------
 # TestHarness
 #-------------------------------------------------------------------------
 class TestHarness (Model):
 
   def __init__( s, ReducerPRTL, src_msgs, sink_msgs,
-                stall_prob, latency, src_delay, sink_delay,
+                src_delay, sink_delay,
                 dump_vcd=False, test_verilog=False ):
 
     # Instantiate Models
     s.src     = TestSource  ( ReducerReqMsg(),  src_msgs,  src_delay  )
     s.reducer = ReducerPRTL
     s.sink    = TestSink    ( ReducerRespMsg(), sink_msgs, sink_delay )
-    s.mem     = TestMemory  ( MemMsg(8,20, MEM_DATA_SIZE), 1, stall_prob, latency )
 
     # Dump VCD
     if dump_vcd:
@@ -43,8 +37,6 @@ class TestHarness (Model):
     # Connect
     s.connect( s.src.out,           s.reducer.req     )
     s.connect( s.reducer.resp,      s.sink.in_        )
-    s.connect( s.reducer.mem_req,    s.mem.reqs[0]     )
-    s.connect( s.reducer.mem_resp,   s.mem.resps[0]    )
 
   def done(s):
     return s.src.done and s.sink.done
@@ -89,8 +81,8 @@ basic_msgs = [
 #-------------------------------------------------------------------------
 
 test_case_table = mk_test_case_table([
-  (               "msgs       stall     latency    src_delay  sink_delay" ),
-  [ "basic_0x0",  basic_msgs, 0,        0,         0,         0,          ], 
+  (               "msgs         src_delay  sink_delay" ),
+  [ "basic_0x0",  basic_msgs,   0,         0,          ], 
 ])
 
 
@@ -105,7 +97,6 @@ def run_test( reducer, test_params, dump_vcd, test_verilog=False ):
   reducer_resps  = test_params.msgs[1::2]
 
   th = TestHarness( reducer, reducer_reqs, reducer_resps,
-                    test_params.stall, test_params.latency,
                     test_params.src_delay, test_params.sink_delay,
                     dump_vcd, test_verilog )
 
