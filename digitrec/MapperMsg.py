@@ -24,9 +24,9 @@ class MapperReqMsg( BitStructDefinition ):
 class MapperRespMsg( BitStructDefinition ):
 
   def __init__( s ):
-    s.data  = BitField( 49 )
-    s.type_ = BitField( 1  )
-    s.digit = BitField( 4  )
+    s.data  = BitField( 6 )
+    s.type_ = BitField( 1 )
+    s.digit = BitField( 4 )
 
   def mk_msg( s, data, type, digit ):
     msg       = s()

@@ -82,6 +82,7 @@ def gen_protocol_msgs( size, ref, result ):
     req( 'wr', 1, 0x1000 ), resp( 'wr', 0      ),
     req( 'wr', 2, size   ), resp( 'wr', 0      ),
     req( 'wr', 3, ref    ), resp( 'wr', 0      ),
+    req( 'wr', 4, 0      ), resp( 'wr', 0      ),
     req( 'wr', 0, 0      ), resp( 'wr', 0      ),
     req( 'rd', 0, 0      ), resp( 'rd', result ),
   ]

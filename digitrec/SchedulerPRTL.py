@@ -18,7 +18,7 @@ class SchedulerPRTL( Model ):
     # Top Level Interface
     s.in_                 = InValRdyBundle  ( digitrecReqMsg() )
     s.out                 = OutValRdyBundle ( digitrecRespMsg() )
-    s.reference           = InPort          ( 32 )
+    s.reference           = InPort          ( 49 )
     s.base                = InPort          ( 32 )
     s.size                = InPort          ( 32 )
 
@@ -35,7 +35,7 @@ class SchedulerPRTL( Model ):
     s.red_resp            = InValRdyBundle [reducer_num] ( ReducerRespMsg() )
 
     # Task Queue
-    s.task_queue          = NormalQueue ( mapper_num, Bits(49) )
+    s.task_queue          = NormalQueue ( mapper_num, MapperReqMsg() )
 
     # Idle Queue storing mapper ID
     s.idle_queue          = NormalQueue ( mapper_num, Bits(4) )
@@ -99,12 +99,13 @@ class SchedulerPRTL( Model ):
       # idle queue is ready to dequeue and mapper is ready to take request
         if (s.task_queue.deq.val and s.idle_queue.deq.val and
             s.map_req[s.idle_queue.deq.msg].rdy):
-          s.map_req[s.idle_queue.deq.msg].msg.data.value = s.task_queue.deq.msg[0:8]
+          s.map_req[s.idle_queue.deq.msg].msg.data.value  = s.task_queue.deq.msg.data
+          s.map_req[s.idle_queue.deq.msg].msg.digit.value = s.task_queue.deq.msg.digit
           s.map_req[s.idle_queue.deq.msg].msg.type_.value = 0
           s.map_req[s.idle_queue.deq.msg].val.value = 1
           s.task_queue.deq.rdy.value = 1
           s.idle_queue.deq.rdy.value = 1
-    
+
     #---------------------------------------------------------------------
     # Send Mapper Resp to Reducer Combinational Logic
     #---------------------------------------------------------------------
@@ -133,6 +134,7 @@ class SchedulerPRTL( Model ):
                 s.idle_queue.enq.msg.value     = i
                 s.idle_queue.enq.val.value     = 1
                 s.red_req[0].msg.data.value    = s.map_resp[i].msg.data
+                s.red_req[0].msg.digit.value   = s.map_resp[i].msg.digit
                 s.red_req[0].msg.type_.value   = 0
                 s.red_req[0].val.value         = 1
               # every computing is done
@@ -248,7 +250,8 @@ class SchedulerPRTL( Model ):
         # send another read req to global memory
         else:
           if s.gmem_resp.val and s.gmem_req.rdy:
-            s.task_queue.enq.msg.value = s.gmem_resp.msg
+            s.task_queue.enq.msg.data.value = s.gmem_resp.msg
+            s.task_queue.enq.msg.digit.value = s.input_count % 1800
             s.task_queue.enq.val.value = 1
             s.gmem_resp.rdy.value      = 1
             s.gmem_req.msg.addr.value  = s.base + (4 * s.input_count)
@@ -261,7 +264,8 @@ class SchedulerPRTL( Model ):
         s.init.value = 0
 
         if s.gmem_resp.val and s.gmem_req.rdy:
-          s.task_queue.enq.msg.value = s.gmem_resp.msg
+          s.task_queue.enq.msg.data.value = s.gmem_resp.msg
+          s.task_queue.enq.msg.digit.value = s.input_count % 1800
           s.task_queue.enq.val.value = 1
           s.gmem_resp.rdy.value = 1
           s.gmem_req.msg.addr.value = s.base + (4 * s.input_count)
