@@ -29,7 +29,7 @@ class TestHarness (Model):
     s.src       = TestSource    ( digitrecReqMsg(),  src_msgs,  src_delay  )
     s.di        = digitrecPRTL
     s.sink      = TestSink      ( digitrecRespMsg(), sink_msgs, sink_delay )
-    s.mem       = TestMemory    ( MemMsg(8,32,32), 1, stall_prob, latency   )
+    s.mem       = TestMemory    ( MemMsg(8,32,49), 1, stall_prob, latency   )
 
     # Dump VCD
     if dump_vcd:
@@ -82,6 +82,7 @@ def gen_protocol_msgs( size, ref, result ):
     req( 'wr', 1, 0x1000 ), resp( 'wr', 0      ),
     req( 'wr', 2, size   ), resp( 'wr', 0      ),
     req( 'wr', 3, ref    ), resp( 'wr', 0      ),
+    req( 'wr', 4, 0      ), resp( 'wr', 0      ),
     req( 'wr', 0, 0      ), resp( 'wr', 0      ),
     req( 'rd', 0, 0      ), resp( 'rd', result ),
   ]
