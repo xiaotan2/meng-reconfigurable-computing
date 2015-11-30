@@ -10,11 +10,11 @@ from pclib.rtl     import RegEnRst, Mux, Adder, ZeroExtender, RegRst
 from ReducerMsg    import ReducerReqMsg, ReducerRespMsg
 from pclib.ifcs    import MemReqMsg, MemRespMsg
 
-DIGIT = 10
-TYPE_READ = 0
-TYPE_WRITE = 1
-MEM_DATA_SIZE = 56
-
+DIGIT         = 10
+TYPE_READ     = 0
+TYPE_WRITE    = 1
+MEM_DATA_SIZE = 16
+RE_DATA_SIZE  = 6
 #=========================================================================
 # Reducer Datapath
 #=========================================================================
@@ -23,10 +23,10 @@ class ReducerDpath (Model):
 
   def __init__ ( s, k = 3 ):
   
-    s.req_msg_data      = InPort   (49) 
-    s.req_msg_digit     = InPort   ( 4)
-    s.resp_msg_data     = OutPort  (49)
-    s.resp_msg_digit    = OutPort  ( 4)
+    s.req_msg_data      = InPort   (RE_DATA_SIZE) 
+    s.req_msg_digit     = InPort   (4)
+    s.resp_msg_data     = OutPort  (RE_DATA_SIZE)
+    s.resp_msg_digit    = OutPort  (4)
   
     s.mem_req_msg_data   = OutPort (MEM_DATA_SIZE)
  
@@ -197,7 +197,7 @@ class ReducerCtrl (Model):
         s.init_go.value          = 1
        
         s.mem_req_val.value      = 1
-        s.mem_req_msg_addr.value = s.init_count * 7
+        s.mem_req_msg_addr.value = s.init_count
         s.mem_req_msg_type.value = TYPE_WRITE
        
         s.mem_resp_rdy.value     = 1 

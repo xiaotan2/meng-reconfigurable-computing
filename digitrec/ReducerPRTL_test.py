@@ -15,7 +15,7 @@ from ReducerMsg  import ReducerReqMsg, ReducerRespMsg
 from pclib.test  import TestMemory
 from pclib.ifcs  import MemMsg, MemReqMsg, MemRespMsg
 
-MEM_DATA_SIZE = 56
+MEM_DATA_SIZE = 16
 
 #-------------------------------------------------------------------------
 # TestHarness
