@@ -23,7 +23,6 @@ class ReducerDpath (Model):
   
     s.req_msg_data      = InPort   (RE_DATA_SIZE) 
     s.req_msg_digit     = InPort   (4)
-    s.resp_msg_data     = OutPort  (RE_DATA_SIZE)
     s.resp_msg_digit    = OutPort  (4)
   
     # ctrl->dpath
@@ -112,8 +111,8 @@ class ReducerCtrl (Model):
     s.resp_val          = OutPort (1)
     s.resp_rdy          = InPort  (1)
 
-    s.req_msg_type      = InPort  (1)    
-    s.resp_msg_type     = OutPort (1)    
+    s.req_msg_type      = InPort  (2)    
+    s.resp_msg_type     = OutPort (2)    
 
     # ctrl->dpath
     s.knn_reg_en        = OutPort (1)
@@ -216,7 +215,7 @@ class ReducerCtrl (Model):
         s.knn_update.value       = 0
     
     # Register for resp msg type     
-    s.Reg_msg_type = m = RegEnRst( 1 )
+    s.Reg_msg_type = m = RegEnRst( 2 )
     s.connect_dict({
       m.en  : s.msg_type_reg_en,
       m.in_ : s.req_msg_type,
@@ -246,7 +245,6 @@ class ReducerPRTL (Model):
     s.connect( s.req.val,                 s.ctrl.req_val        )
     s.connect( s.req.rdy,                 s.ctrl.req_rdy        )
   
-    s.connect( s.dpath.resp_msg_data,     s.resp.msg.data       )
     s.connect( s.dpath.resp_msg_digit,    s.resp.msg.digit      )
     s.connect( s.ctrl.resp_msg_type,      s.resp.msg.type_      )
     s.connect( s.ctrl.resp_val,           s.resp.val            )
