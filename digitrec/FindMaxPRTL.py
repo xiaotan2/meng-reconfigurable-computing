@@ -99,12 +99,26 @@ class FindMaxCtrlRTL( Model ):
     s.knn_mux_sel      = OutPort (1)
     s.knn_count        = OutPort ( int( math.ceil( math.log( k , 2 ) ) ) ) # max 3
 
+    # internal signal
+    s.count_go         = Wire( Bits(1) )
+
+    # states
     s.STATE_IDLE  = 0 
     s.STATE_CMP   = 1 # do compare or store reference data
     s.STATE_DONE  = 2 # return max value and its index
 
     s.state = RegRst( 2, reset_value = s.STATE_IDLE )
+  
+    # Counters
+    s.knn_count  = Wire ( int( math.ceil( math.log( k, 2) ) ) ) # max 3
 
+    @s.tick
+    def counter():
+      if ( s.count_go == 1 ):
+        s.knn_count.next = s.knn_count + 1
+      else:
+        s.knn_count.next = 0
+  
     #------------------------------------------------------
     # state transtion logic
     #------------------------------------------------------
@@ -120,6 +134,7 @@ class FindMaxCtrlRTL( Model ):
           next_state = s.STATE_CMP
 
       if ( curr_state == s.STATE_CMP ):
+        if ( s.knn_count == k - 1 ):
           next_state = s.STATE_DONE
 
       if ( curr_state == s.STATE_CMP ):
@@ -146,19 +161,38 @@ class FindMaxCtrlRTL( Model ):
         s.max_reg_en.value  = 0
         s.idx_reg_en.value  = 0
         s.knn_mux_sel.value = 0
+        s.count_go.value    = 0
 
       elif ( current_state == s.STATE_CMP  ):
         s.req_rdy.value     = 0
         s.resp_val.value    = 0
-
-        s.knn_reg_en.value  = 1 
-        s.max_reg_en.value  = 1
-        s.knn_mux_sel.value = 1
-        if ( s.isLarger == 1):
+        s.count_go.value    = 1
+        
+        if ( s.knn_count == 0 ):
+          s.knn_reg_en.value  = 1 
+          s.knn_mux_sel.value = 0
+          s.idx_reg_en.value  = 1
+          s.max_reg_en.value  = 1
+        
+        elif ( s.knn_count == 1 ):
+          s.knn_reg_en.value  = 1 
+          s.knn_mux_sel.value = 1
+          if ( s.isLarger == 1):
             s.idx_reg_en.value  = 1
-            s.max_mux_sel.value = 0
-        else:
+            s.max_reg_en.value  = 1
+          else:
             s.idx_reg_en.value  = 0
+            s.max_reg_en.value  = 0
+        
+        elif ( s.knn_count == 2 ):
+          s.knn_reg_en.value  = 0 
+          s.knn_mux_sel.value = 1
+          if ( s.isLarger == 1):
+            s.idx_reg_en.value  = 1
+            s.max_reg_en.value  = 1
+          else:
+            s.idx_reg_en.value  = 0
+            s.max_reg_en.value  = 0
 
 
       elif ( current_state == s.STATE_DONE ):
@@ -169,6 +203,7 @@ class FindMaxCtrlRTL( Model ):
         s.max_reg_en.value  = 0
         s.idx_reg_en.value  = 0
         s.knn_mux_sel.value = 0
+        s.count_go.value    = 0
 
 
 
