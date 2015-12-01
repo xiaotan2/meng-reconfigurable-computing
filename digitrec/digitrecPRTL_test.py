@@ -29,7 +29,7 @@ class TestHarness (Model):
     s.src       = TestSource    ( digitrecReqMsg(),  src_msgs,  src_delay  )
     s.di        = digitrecPRTL
     s.sink      = TestSink      ( digitrecRespMsg(), sink_msgs, sink_delay )
-    s.mem       = TestMemory    ( MemMsg(8,32,49), 1, stall_prob, latency   )
+    s.mem       = TestMemory    ( MemMsg(8,32,56), 1, stall_prob, latency   )
 
     # Dump VCD
     if dump_vcd:
@@ -97,16 +97,16 @@ for i in xrange(10):
   filename = 'data/training_set_' + str(i) + '.dat'
   with open(filename, 'r') as f:
     for L in f:
-      training_data.append(L.replace(',\n',''))
+      training_data.append(int(L.replace(',\n',''), 16))
 
 
-small_training_data = []
+small_train_data = []
 for i in xrange(10):
   filename = 'data/training_set_' + str(i) + '.dat'
   with open(filename, 'r') as f:
     count = 0
     for L in f:
-      small_training_data.append(L.replace(',\n',''))
+      small_train_data.append(int(L.replace(',\n',''), 16))
       count += 1
       if count >=10:
         break
@@ -130,7 +130,7 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
   data       = test_params.data
   ref        = test_params.ref
   result     = test_params.result
-  data_bytes = struct.pack("<{}I".format(len(data)), *data)
+  data_bytes = struct.pack("<{}Q".format(len(data)), *data)
   
   digitrec_protocol_msgs = gen_protocol_msgs( len(data), ref, result )
   digitrec_reqs          = digitrec_protocol_msgs[::2]
