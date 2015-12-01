@@ -133,13 +133,15 @@ class SchedulerPRTL( Model ):
               if s.idle_queue.enq.rdy and s.red_req[0].rdy:
                 s.idle_queue.enq.msg.value     = i
                 s.idle_queue.enq.val.value     = 1
-                s.red_req[0].msg.data.value    = s.map_resp[i].msg.data
-                s.red_req[0].msg.digit.value   = s.map_resp[i].msg.digit
-                s.red_req[0].msg.type_.value   = 0
-                s.red_req[0].val.value         = 1
               # every computing is done
               if s.end and s.num_task_queue == 2:
                 s.done.value                   = 1
+                s.red_req[0].msg.type_.value   = 2
+              else:
+                s.red_req[0].msg.type_.value   = 0
+              s.red_req[0].msg.data.value    = s.map_resp[i].msg.data
+              s.red_req[0].msg.digit.value   = s.map_resp[i].msg.digit
+              s.red_req[0].val.value         = 1
             break
 
     #---------------------------------------------------------------------
@@ -228,7 +230,7 @@ class SchedulerPRTL( Model ):
             if (s.done and s.red_resp[0].val):
 
               s.out.msg.type_.value     = digitrecReqMsg.TYPE_READ
-              s.out.msg.data.value      = s.red_resp[0].msg.data
+              s.out.msg.data.value      = 1
               s.red_resp[0].rdy.value   = 1
               s.in_.rdy.value           = 1
               s.out.val.value           = 1
