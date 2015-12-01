@@ -23,7 +23,6 @@ class ReducerDpath (Model):
   
     s.req_msg_data      = InPort   (RE_DATA_SIZE) 
     s.req_msg_digit     = InPort   (4)
-    s.resp_msg_data     = OutPort  (RE_DATA_SIZE)
     s.resp_msg_digit    = OutPort  (4)
   
     # ctrl->dpath
@@ -246,7 +245,6 @@ class ReducerPRTL (Model):
     s.connect( s.req.val,                 s.ctrl.req_val        )
     s.connect( s.req.rdy,                 s.ctrl.req_rdy        )
   
-    s.connect( s.dpath.resp_msg_data,     s.resp.msg.data       )
     s.connect( s.dpath.resp_msg_digit,    s.resp.msg.digit      )
     s.connect( s.ctrl.resp_msg_type,      s.resp.msg.type_      )
     s.connect( s.ctrl.resp_val,           s.resp.val            )

@@ -61,9 +61,8 @@ def mk_req_msg( data, digit, type_ ):
 # mk_resp_msg
 #-------------------------------------------------------------------------
 
-def mk_resp_msg( data, digit, type_ ):
+def mk_resp_msg(  digit, type_ ):
   msg       = ReducerRespMsg()
-  msg.data  = data
   msg.digit = digit
   msg.type_ = type_
   return msg
@@ -73,7 +72,7 @@ def mk_resp_msg( data, digit, type_ ):
 #-------------------------------------------------------------------------
 
 basic_msgs = [
-  mk_req_msg( 0, 0, 1 ), mk_resp_msg( 0, 0, 1 ), 
+  mk_req_msg( 0, 0, 1 ), mk_resp_msg( 0, 1 ), 
 ]
 
 #-------------------------------------------------------------------------
