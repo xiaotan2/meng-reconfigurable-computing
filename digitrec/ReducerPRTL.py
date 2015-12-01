@@ -112,8 +112,8 @@ class ReducerCtrl (Model):
     s.resp_val          = OutPort (1)
     s.resp_rdy          = InPort  (1)
 
-    s.req_msg_type      = InPort  (1)    
-    s.resp_msg_type     = OutPort (1)    
+    s.req_msg_type      = InPort  (2)    
+    s.resp_msg_type     = OutPort (2)    
 
     # ctrl->dpath
     s.knn_reg_en        = OutPort (1)
@@ -216,7 +216,7 @@ class ReducerCtrl (Model):
         s.knn_update.value       = 0
     
     # Register for resp msg type     
-    s.Reg_msg_type = m = RegEnRst( 1 )
+    s.Reg_msg_type = m = RegEnRst( 2 )
     s.connect_dict({
       m.en  : s.msg_type_reg_en,
       m.in_ : s.req_msg_type,
