@@ -33,11 +33,11 @@ class TestHarness (Model):
 
     # Dump VCD
     if dump_vcd:
-      s.wordcount.vcd_file = dump_vcd
+      s.di.vcd_file = dump_vcd
 
     # Translation
     if test_verilog:
-      s.wordcount = TranslationTool( s.wordcount )
+      s.di = TranslationTool( s.wordcount )
 
     # Connect
     s.connect( s.src.out,           s.di.direq )
@@ -92,30 +92,33 @@ def gen_protocol_msgs( size, ref, result ):
 # Test Case: basic
 #-------------------------------------------------------------------------
 
-very_basic_data = [ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x02 ]
-basic_data      = [ 0x12, 0x23, 0x45, 0x35, 0x41, 0xab, 0xc7, 0x8d, 0x41, 0xf5 ]
+training_data = []
+for i in xrange(10):
+  filename = 'data/training_set_' + str(i) + '.dat'
+  with open(filename, 'r') as f:
+    for L in f:
+      training_data.append(L.replace(',\n',''))
 
-random_data = []
-result_rdm  = 0
-ref_rdm     = random.randint(0,0x1f)
-for i in xrange(500):
-  a = random.randint(0,0x1f)
-  random_data.append(a)
-  if ( a == ref_rdm ):
-    result_rdm = result_rdm + 1
 
-  
+small_training_data = []
+for i in xrange(10):
+  filename = 'data/training_set_' + str(i) + '.dat'
+  with open(filename, 'r') as f:
+    count = 0
+    for L in f:
+      small_training_data.append(L.replace(',\n',''))
+      count += 1
+      if count >=10:
+        break
 
 
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
-
 test_case_table = mk_test_case_table([
-  (                 "data            ref    result       stall  latency  src_delay  sink_delay" ),
-  [ "vbasic_0x0x0", very_basic_data, 0x02,    2,           0,     0,       0,         0         ], 
-  [ "basic_0x0x0",  basic_data,      0x41,    2,           0,     0,       0,         0         ],
-  [ "random_0x0x0", random_data,     ref_rdm, result_rdm,  0,     0,       0,         0         ], 
+  (                  "data             ref              result       stall  latency  src_delay  sink_delay" ),
+  [ "basic1_0x0x0",  training_data,    0x3041060800,    1,           0,     0,       0,         0         ],
+  [ "small4_0x0x0",  small_train_data, 0x41c3830408,    1,           0,     0,       0,         0         ],
 ])
 
 #-------------------------------------------------------------------------
