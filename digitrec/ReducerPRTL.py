@@ -45,13 +45,18 @@ class ReducerDpath (Model):
 
     s.FindMax_req_val     = InPort (1) 
     s.FindMax_resp_rdy    = InPort (1)
+    s.FindMin_req_val     = InPort (1) 
+    s.FindMin_resp_rdy    = InPort (1)
   
     s.msg_data_reg_en     = InPort (1)
+    s.msg_idx_reg_en      = InPort (1)
 
     # dpath->ctrl
     s.FindMax_req_rdy     = OutPort(1)
     s.FindMax_resp_val    = OutPort(1)
-    s.FindMax_resp_idx    = OutPort( int( math.ceil( math.log( k, 2) ) ) ) # max 10
+    s.FindMax_resp_idx    = OutPort( int( math.ceil( math.log( k, 2) ) ) ) # max 3
+    s.FindMin_req_rdy     = OutPort(1)
+    s.FindMin_resp_val    = OutPort(1)
     s.isSmaller           = OutPort(1)
 
     # internal wires     
@@ -64,8 +69,11 @@ class ReducerDpath (Model):
     s.vote_rd_data        = Wire( Bits( SUM_DATA_SIZE ) )
     s.vote_wr_data        = Wire( Bits( SUM_DATA_SIZE ) )
 
-    s.FindMax_req_data    = Wire( Bits( RE_DATA_SIZE )  )
-    s.FindMax_resp_data   = Wire( Bits( RE_DATA_SIZE )  )
+    s.FindMax_req_data    = Wire( Bits( RE_DATA_SIZE  ) )
+    s.FindMax_resp_data   = Wire( Bits( RE_DATA_SIZE  ) )
+    s.FindMin_req_data    = Wire( Bits( SUM_DATA_SIZE ) )
+    s.FindMin_resp_data   = Wire( Bits( SUM_DATA_SIZE ) )
+    s.FindMin_resp_idx    = Wire( Bits( int( math.ceil( math.log( DIGIT, 2 ) ) ) ) ) # max 10
 
     # Req msg data Register
     s.req_msg_data_q = Wire( Bits( RE_DATA_SIZE ) )    
@@ -179,6 +187,36 @@ class ReducerDpath (Model):
       m.out     : s.adder_out
     })
 
+
+    # Find min value of knn_vote, return digit
+    s.connect_wire( s.vote_rd_data, s.FindMin_req_data )
+    
+    s.findmin   = m = FindMinPRTL( SUM_DATA_SIZE, DIGIT )
+    s.connect_dict({
+      m.req.val       : s.FindMin_req_val,
+      m.req.rdy       : s.FindMin_req_rdy,
+      m.req.msg.data  : s.FindMin_req_data,
+      m.resp.val      : s.FindMin_resp_val,
+      m.resp.rdy      : s.FindMin_resp_rdy,
+      m.resp.msg.data : s.FindMin_resp_data,
+      m.resp.msg.digit: s.FindMin_resp_idx
+    })
+
+
+    # Resp idx Register
+    s.resp_msg_idx_q = Wire( Bits( int( math.ceil( math.log( DIGIT, 2 ) ) ) ) )
+
+    s.req_msg_idx_reg = m = RegEnRst( int( math.ceil( math.log( DIGIT, 2 ) ) ) )
+    s.connect_dict({
+      m.en      : s.msg_idx_reg_en,
+      m.in_     : s.FindMin_resp_idx,
+      m.out     : s.resp_msg_idx_q
+    })
+
+    # connect output idx
+    s.connect( s.resp_msg_idx_q, s.resp_msg_digit )
+
+
 #=========================================================================
 # Reducer Control
 #=========================================================================
@@ -212,13 +250,18 @@ class ReducerCtrl (Model):
 
     s.FindMax_req_val     = OutPort (1) 
     s.FindMax_resp_rdy    = OutPort (1)
+    s.FindMin_req_val     = OutPort (1) 
+    s.FindMin_resp_rdy    = OutPort (1)
 
     s.msg_data_reg_en     = OutPort (1)
+    s.msg_idx_reg_en      = OutPort (1)
 
     # dpath->ctrl
     s.FindMax_req_rdy     = InPort  (1)
     s.FindMax_resp_val    = InPort  (1)
     s.FindMax_resp_idx    = InPort  ( int( math.ceil( math.log( k, 2) ) ) ) # max 10
+    s.FindMin_req_rdy     = InPort  (1)
+    s.FindMin_resp_val    = InPort  (1)
     s.isSmaller           = InPort  (1)
 
     s.msg_type_reg_en     = Wire ( Bits(1) )
@@ -226,18 +269,21 @@ class ReducerCtrl (Model):
     s.req_msg_digit_q     = Wire ( Bits(4) )
     s.init_go             = Wire ( Bits(1) )
     s.max_go              = Wire ( Bits(1) )
+    s.min_go              = Wire ( Bits(1) )
 
     # State element
     s.STATE_IDLE = 0
     s.STATE_INIT = 1
     s.STATE_MAX  = 2
-    s.STATE_DONE = 3
+    s.STATE_MIN  = 3
+    s.STATE_DONE = 4
 
-    s.state = RegRst( 2, reset_value = s.STATE_IDLE )
+    s.state = RegRst( 3, reset_value = s.STATE_IDLE )
 
     # Counters
-    s.init_count  = Wire ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
-    s.knn_count   = Wire ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
+    s.init_count  = Wire ( int( math.ceil( math.log( k*DIGIT, 2 ) ) ) ) # max 30
+    s.knn_count   = Wire ( int( math.ceil( math.log( k*DIGIT, 2 ) ) ) ) # max 30
+    s.vote_count  = Wire ( int( math.ceil( math.log( DIGIT,   2 ) ) ) ) # max 10
 
     @s.tick
     def counter():
@@ -250,6 +296,11 @@ class ReducerCtrl (Model):
         s.knn_count.next  = s.knn_count  + 1
       else:
         s.knn_count.next  = s.req_msg_digit * k
+
+      if ( s.min_go == 1 ):
+        s.vote_count.next  = s.vote_count  + 1
+      else:
+        s.vote_count.next  = 0
 
     # State Transition Logic
     @s.combinational
@@ -265,6 +316,9 @@ class ReducerCtrl (Model):
         elif ( (s.req_val and s.req_rdy) and (s.req_msg_type == 0)
                   and (s.FindMax_req_val and s.FindMax_req_rdy) ):
            next_state = s.STATE_MAX
+        elif ( (s.req_val and s.req_rdy) and (s.req_msg_type == 2)
+                  and (s.FindMin_req_val and s.FindMin_req_rdy) ):
+           next_state = s.STATE_MIN
 
       # Transition out of INIT state
       if ( curr_state == s.STATE_INIT ):
@@ -274,6 +328,11 @@ class ReducerCtrl (Model):
       # Transition out of MAX  state
       if ( curr_state == s.STATE_MAX  ):
         if ( s.FindMax_resp_val and s.FindMax_resp_rdy ):
+           next_state = s.STATE_DONE 
+      
+      # Transition out of MIN  state
+      if ( curr_state == s.STATE_MIN  ):
+        if ( s.FindMin_resp_val and s.FindMin_resp_rdy ):
            next_state = s.STATE_DONE 
       
       # Transition out of DONE state
