@@ -234,7 +234,7 @@ class FindMinPRTL( Model ):
     if s.ctrl.state.out == s.ctrl.STATE_DONE :
       state_str = "DONE"
 
-    return "{} ({}>?{} max{} count{} idx_en{} {}) {}:{}".format(
+    return "{} ({}>?{} max{} count{} idx_en{} {}) {}".format(
       s.req,
       s.dpath.knn_data0,
       s.dpath.knn_data1,
@@ -242,7 +242,6 @@ class FindMinPRTL( Model ):
       s.dpath.knn_counter,
       s.dpath.idx_reg_en,
       state_str,
-      s.ctrl.resp_val,
-      s.ctrl.resp_rdy
+      s.resp
     )
 
