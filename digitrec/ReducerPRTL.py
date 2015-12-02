@@ -6,7 +6,7 @@ import math
 
 from pymtl         import *
 from pclib.ifcs    import InValRdyBundle, OutValRdyBundle
-from pclib.rtl     import RegEnRst, Mux, Adder, LtComparator, RegRst, RegisterFile
+from pclib.rtl     import RegEnRst, Mux, Adder, Subtractor, LtComparator, RegRst, RegisterFile, ZeroExtender
 
 from ReducerMsg    import ReducerReqMsg, ReducerRespMsg
 
@@ -26,6 +26,8 @@ RE_DATA_SIZE  = 6
 class ReducerDpath (Model):
 
   def __init__ ( s, k = 3 ):
+
+    SUM_DATA_SIZE         = int( math.ceil( math.log( 50*k, 2 ) ) ) 
   
     s.req_msg_data        = InPort (RE_DATA_SIZE) 
     s.resp_msg_digit      = OutPort(4)
@@ -36,6 +38,11 @@ class ReducerDpath (Model):
     s.knn_rd_addr         = InPort ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
     s.knn_wr_en           = InPort (1)
     
+    s.vote_wr_data_mux_sel= InPort (1)
+    s.vote_wr_addr        = InPort ( int( math.ceil( math.log( DIGIT, 2) ) ) ) # max 10
+    s.vote_rd_addr        = InPort ( int( math.ceil( math.log( DIGIT, 2) ) ) ) # max 10
+    s.vote_wr_en          = InPort (1)
+
     s.FindMax_req_val     = InPort (1) 
     s.FindMax_resp_rdy    = InPort (1)
   
@@ -48,11 +55,17 @@ class ReducerDpath (Model):
     s.isSmaller           = OutPort(1)
 
     # internal wires     
-    s.knn_rd_data         = Wire( Bits( RE_DATA_SIZE ) )
-    s.knn_wr_data         = Wire( Bits( RE_DATA_SIZE ) )
+    s.knn_rd_data         = Wire( Bits( RE_DATA_SIZE  ) )
+    s.knn_wr_data         = Wire( Bits( RE_DATA_SIZE  ) )
 
-    s.FindMax_req_data    = Wire( Bits( RE_DATA_SIZE)  )
-    s.FindMax_resp_data   = Wire( Bits( RE_DATA_SIZE)  )
+    s.subtractor_out      = Wire( Bits( SUM_DATA_SIZE ) )
+    s.adder_out           = Wire( Bits( SUM_DATA_SIZE ) )
+
+    s.vote_rd_data        = Wire( Bits( SUM_DATA_SIZE ) )
+    s.vote_wr_data        = Wire( Bits( SUM_DATA_SIZE ) )
+
+    s.FindMax_req_data    = Wire( Bits( RE_DATA_SIZE )  )
+    s.FindMax_resp_data   = Wire( Bits( RE_DATA_SIZE )  )
 
     # Req msg data Register
     s.req_msg_data_q = Wire( Bits( RE_DATA_SIZE ) )    
@@ -74,7 +87,7 @@ class ReducerDpath (Model):
     })
 
     
-    # register file
+    # register file knn_table
     s.knn_table = m = RegisterFile( dtype=Bits(RE_DATA_SIZE), 
                       nregs=k*DIGIT, rd_ports=1, wr_ports=1, const_zero=False ) 
     s.connect_dict({
@@ -83,6 +96,29 @@ class ReducerDpath (Model):
       m.wr_addr    : s.knn_wr_addr,
       m.wr_data    : s.knn_wr_data,
       m.wr_en      : s.knn_wr_en
+    })
+
+
+
+    # vote_wr_data Mux
+    s.vote_wr_data_mux = m = Mux( SUM_DATA_SIZE, 2 )
+    s.connect_dict({
+      m.sel     : s.vote_wr_data_mux_sel,
+      m.in_[0]  : 50*k,
+      m.in_[1]  : s.adder_out,
+      m.out     : s.vote_wr_data
+    })
+
+
+    # register file knn_vote
+    s.knn_vote = m = RegisterFile( dtype=Bits( SUM_DATA_SIZE ),
+                      nregs=DIGIT, rd_ports=1, wr_ports=1, const_zero=False )
+    s.connect_dict({
+      m.rd_addr[0] : s.vote_rd_addr,
+      m.rd_data[0] : s.vote_rd_data,
+      m.wr_addr    : s.vote_wr_addr,
+      m.wr_data    : s.vote_wr_data,
+      m.wr_en      : s.vote_wr_en
     })
 
 
@@ -110,18 +146,39 @@ class ReducerDpath (Model):
       m.out : s.isSmaller
     })
 
-#    # Adder    
-#    s.add = m = Adder( 32 )
-#    s.connect_dict({
-#      m.in0     : s.zext.out,
-#      m.in1     : s.mux.out,
-#      m.cin     : 0,
-#      m.out     : s.adder_out
-#    })
-#
-#    # Connect to output port
-#    s.connect( s.reg_out, s.resp_msg_data )
-    
+    # Zero extender
+    s.FindMax_resp_data_zext = Wire( Bits( SUM_DATA_SIZE ) )
+    s.FindMax_resp_data_zexter = m = ZeroExtender( RE_DATA_SIZE, SUM_DATA_SIZE )
+    s.connect_dict({
+      m.in_     : s.FindMax_resp_data,
+      m.out     : s.FindMax_resp_data_zext,
+    })
+
+    # Subtractor
+    s.subtractor = m = Subtractor( SUM_DATA_SIZE )
+    s.connect_dict({
+      m.in0     : s.vote_rd_data,
+      m.in1     : s.FindMax_resp_data_zext,
+      m.out     : s.subtractor_out
+    })
+
+    # Zero extender
+    s.req_msg_data_zext = Wire( Bits( SUM_DATA_SIZE ) )
+    s.req_msg_data_zexter = m = ZeroExtender( RE_DATA_SIZE, SUM_DATA_SIZE )
+    s.connect_dict({
+      m.in_     : s.req_msg_data_q,
+      m.out     : s.req_msg_data_zext,
+    })
+
+    # Adder    
+    s.adder = m = Adder( SUM_DATA_SIZE )
+    s.connect_dict({
+      m.in0     : s.subtractor_out,
+      m.in1     : s.req_msg_data_zext,
+      m.cin     : 0,
+      m.out     : s.adder_out
+    })
+
 #=========================================================================
 # Reducer Control
 #=========================================================================
@@ -147,6 +204,11 @@ class ReducerCtrl (Model):
     s.knn_wr_addr         = OutPort ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
     s.knn_rd_addr         = OutPort ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
     s.knn_wr_en           = OutPort (1)
+
+    s.vote_wr_data_mux_sel= OutPort (1)
+    s.vote_wr_addr        = OutPort ( int( math.ceil( math.log( DIGIT, 2) ) ) ) # max 10
+    s.vote_rd_addr        = OutPort ( int( math.ceil( math.log( DIGIT, 2) ) ) ) # max 10
+    s.vote_wr_en          = OutPort (1)
 
     s.FindMax_req_val     = OutPort (1) 
     s.FindMax_resp_rdy    = OutPort (1)
@@ -252,6 +314,10 @@ class ReducerCtrl (Model):
           s.knn_rd_addr.value      = 0
           s.max_go.value           = 0
          
+        s.vote_wr_data_mux_sel.value   = 1
+        s.vote_wr_en.value             = 0
+        s.vote_wr_addr.value           = s.req_msg_digit_q
+        s.vote_rd_addr.value           = s.req_msg_digit_q
 
       # INI state
       elif current_state == s.STATE_INIT:
@@ -276,6 +342,21 @@ class ReducerCtrl (Model):
         else:
           s.knn_rd_addr.value    = s.init_count - 1
 
+        if ( s.init_count < DIGIT ):
+          s.vote_wr_data_mux_sel.value   = 0
+          s.vote_wr_en.value             = 1
+          s.vote_wr_addr.value           = s.init_count
+          # vote_rd for debugging
+          if s.init_count == 0:
+            s.vote_rd_addr.value         = 0
+          else:
+            s.vote_rd_addr.value         = s.init_count - 1
+        else:
+          s.vote_wr_data_mux_sel.value   = 1
+          s.vote_wr_en.value             = 0
+          s.vote_wr_addr.value           = 0
+          s.vote_rd_addr.value           = 0
+
       # MAX state
       elif current_state == s.STATE_MAX:
         s.req_rdy.value          = 0
@@ -295,15 +376,21 @@ class ReducerCtrl (Model):
           s.knn_wr_addr.value    = s.req_msg_digit_q*k + s.FindMax_resp_idx
           if ( s.isSmaller == 1 ):
             s.knn_wr_data_mux_sel.value = 1
-            s.knn_wr_en.value      = 1
+            s.knn_wr_en.value    = 1
+            s.vote_wr_en.value   = 1
           else:
             s.knn_wr_data_mux_sel.value = 0
-            s.knn_wr_en.value      = 0
+            s.knn_wr_en.value    = 0
         else:
           s.knn_wr_data_mux_sel.value = 0
           s.knn_rd_addr.value    = s.knn_count
           s.knn_wr_en.value      = 0
           s.knn_wr_addr.value    = 0
+          s.vote_wr_en.value     = 0
+
+        s.vote_wr_data_mux_sel.value   = 1
+        s.vote_wr_addr.value           = s.req_msg_digit_q
+        s.vote_rd_addr.value           = s.req_msg_digit_q
 
       # DONE state
       elif current_state == s.STATE_DONE:
@@ -323,6 +410,11 @@ class ReducerCtrl (Model):
         s.FindMax_req_val.value  = 0 
         s.FindMax_resp_rdy.value = 0
         s.knn_rd_addr.value      = 0x1b
+
+        s.vote_wr_data_mux_sel.value   = 1
+        s.vote_wr_en.value             = 0
+        s.vote_wr_addr.value           = s.req_msg_digit_q
+        s.vote_rd_addr.value           = s.req_msg_digit_q
 
     # Register for resp msg type     
     s.Reg_msg_type = m = RegEnRst( 2 )
@@ -388,9 +480,12 @@ class ReducerPRTL (Model):
     if s.ctrl.state.out == s.ctrl.STATE_DONE:
       state_str = "DONE"
 
-    return "{} (count{} wr_data{} wr_addr{} wr_en{} rd_addr{} rd_dat{} qrdy{} qval{} prdy{} pval{} in{}<?max{} idx{} sma{} {}) {}".format( s.req, 
-            s.ctrl.init_count, s.dpath.knn_wr_data, s.ctrl.knn_wr_addr, s.dpath.knn_wr_en,
+    return "{} (ct{} | wr_data{} wr_addr{} wr_en{} rd_addr{} rd_dat{} | wr_data{} wr_addr{} wr_en{} rd_addr{} rd_dat{} | qrv{}{} prv{}{} | in{}<?max{} idx{} sma{} {}) {}".format( s.req, 
+            s.ctrl.init_count,
+            s.dpath.knn_wr_data, s.dpath.knn_wr_addr, s.dpath.knn_wr_en,
             s.dpath.knn_rd_addr, s.dpath.knn_rd_data,
+            s.dpath.vote_wr_data, s.dpath.vote_wr_addr, s.dpath.vote_wr_en,
+            s.dpath.vote_rd_addr, s.dpath.vote_rd_data,
             s.dpath.FindMax_req_rdy, s.dpath.FindMax_req_val, s.dpath.FindMax_resp_rdy, s.dpath.FindMax_resp_val,
             s.dpath.req_msg_data_q, s.dpath.FindMax_resp_data, s.dpath.FindMax_resp_idx, s.ctrl.isSmaller,
             state_str, s.resp )
