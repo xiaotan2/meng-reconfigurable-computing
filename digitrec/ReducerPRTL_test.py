@@ -73,9 +73,10 @@ def mk_resp_msg(  digit, type_ ):
 
 basic_msgs = [
   mk_req_msg( 0, 0, 1 ), mk_resp_msg( 0, 1 ), 
-  mk_req_msg( 3, 0, 0 ), mk_resp_msg( 0, 0 ), 
-  mk_req_msg( 5, 9, 0 ), mk_resp_msg( 0, 0 ), 
+  mk_req_msg( 6, 0, 0 ), mk_resp_msg( 0, 0 ), 
+  mk_req_msg( 2, 9, 0 ), mk_resp_msg( 0, 0 ), 
   mk_req_msg(50, 8, 0 ), mk_resp_msg( 0, 0 ), 
+  mk_req_msg( 0, 8, 2 ), mk_resp_msg( 9, 2 ), 
 ]
 
 #-------------------------------------------------------------------------
@@ -102,7 +103,7 @@ def run_test( reducer, test_params, dump_vcd, test_verilog=False ):
                     test_params.src_delay, test_params.sink_delay,
                     dump_vcd, test_verilog )
 
-  run_sim( th, dump_vcd, max_cycles=60 )
+  run_sim( th, dump_vcd, max_cycles=70 )
 
 
 @pytest.mark.parametrize( **test_case_table )

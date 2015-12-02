@@ -356,6 +356,7 @@ class ReducerCtrl (Model):
         s.msg_data_reg_en.value  = 1 
         s.msg_digit_reg_en.value = 1
         s.msg_type_reg_en.value  = 1
+        s.msg_idx_reg_envalue    = 0
        
         s.init_go.value          = 0
 
@@ -367,16 +368,33 @@ class ReducerCtrl (Model):
           s.FindMax_req_val.value  = 1 
           s.FindMax_resp_rdy.value = 0
           s.knn_rd_addr.value      = s.knn_count
-        else:
+          s.min_go.value           = 0
+          s.FindMin_req_val.value  = 0
+          s.FindMin_resp_rdy.value = 0
+          s.vote_rd_addr.value     = s.req_msg_digit_q
+        elif ( (s.req_val and s.req_rdy) and (s.req_msg_type == 2 ) ):
+          s.max_go.value           = 0
           s.FindMax_req_val.value  = 0 
           s.FindMax_resp_rdy.value = 0
           s.knn_rd_addr.value      = 0
+          s.min_go.value           = 1
+          s.FindMin_req_val.value  = 1
+          s.FindMin_resp_rdy.value = 0
+          s.vote_rd_addr.value     = s.vote_count
+        else:
           s.max_go.value           = 0
+          s.FindMax_req_val.value  = 0 
+          s.FindMax_resp_rdy.value = 0
+          s.knn_rd_addr.value      = 0
+          s.min_go.value           = 0
+          s.FindMin_req_val.value  = 0
+          s.FindMin_resp_rdy.value = 0
+          s.vote_rd_addr.value     = s.req_msg_digit_q
          
         s.vote_wr_data_mux_sel.value   = 1
         s.vote_wr_en.value             = 0
         s.vote_wr_addr.value           = s.req_msg_digit_q
-        s.vote_rd_addr.value           = s.req_msg_digit_q
+
 
       # INI state
       elif current_state == s.STATE_INIT:
@@ -386,9 +404,14 @@ class ReducerCtrl (Model):
         s.msg_data_reg_en.value  = 0 
         s.msg_digit_reg_en.value = 0
         s.msg_type_reg_en.value  = 0
+        s.msg_idx_reg_en.value   = 0
        
         s.init_go.value          = 1
         s.max_go.value           = 0
+
+        s.min_go.value           = 0
+        s.FindMin_req_val.value  = 0
+        s.FindMin_resp_rdy.value = 0
       
         s.knn_wr_data_mux_sel.value = 0
         s.knn_wr_en.value        = 1
@@ -400,6 +423,7 @@ class ReducerCtrl (Model):
           s.knn_rd_addr.value    = 0
         else:
           s.knn_rd_addr.value    = s.init_count - 1
+
 
         if ( s.init_count < DIGIT ):
           s.vote_wr_data_mux_sel.value   = 0
@@ -424,9 +448,14 @@ class ReducerCtrl (Model):
         s.msg_data_reg_en.value  = 0 
         s.msg_digit_reg_en.value = 0
         s.msg_type_reg_en.value  = 0
+        s.msg_idx_reg_en.value   = 0
        
         s.init_go.value          = 0
         s.max_go.value           = 1
+
+        s.min_go.value           = 0
+        s.FindMin_req_val.value  = 0
+        s.FindMin_resp_rdy.value = 0
       
         s.FindMax_req_val.value  = 1 
         s.FindMax_resp_rdy.value = 1
@@ -451,6 +480,41 @@ class ReducerCtrl (Model):
         s.vote_wr_addr.value           = s.req_msg_digit_q
         s.vote_rd_addr.value           = s.req_msg_digit_q
 
+
+      # MIN state
+      elif current_state == s.STATE_MIN:
+        s.req_rdy.value          = 0
+        s.resp_val.value         = 0
+
+        s.msg_data_reg_en.value  = 0
+        s.msg_digit_reg_en.value = 0
+        s.msg_type_reg_en.value  = 0
+
+        s.init_go.value          = 0
+        s.max_go.value           = 0
+        s.FindMax_req_val.value  = 0
+        s.FindMax_resp_rdy.value = 0
+
+        s.min_go.value           = 1
+        s.FindMin_req_val.value  = 1
+        s.FindMin_resp_rdy.value = 1
+
+        s.vote_wr_data_mux_sel.value = 1
+        s.vote_wr_en.value       = 0
+        s.vote_wr_addr.value     = 0
+        if ( s.vote_count > DIGIT - 1 ):
+          s.msg_idx_reg_en.value = 1
+          s.vote_rd_addr.value   = 0
+        else:
+          s.msg_idx_reg_en.value = 0
+          s.vote_rd_addr.value   = s.vote_count
+
+        s.knn_wr_en.value             = 0
+        s.knn_wr_data_mux_sel.value   = 1
+        s.knn_wr_addr.value           = 0
+        s.knn_rd_addr.value           = 0
+
+
       # DONE state
       elif current_state == s.STATE_DONE:
         s.req_rdy.value          = 0
@@ -459,10 +523,15 @@ class ReducerCtrl (Model):
         s.msg_data_reg_en.value  = 0 
         s.msg_digit_reg_en.value = 0
         s.msg_type_reg_en.value  = 0
+        s.msg_idx_reg_en.value   = 0
       
         s.init_go.value          = 0
         s.max_go.value           = 0
     
+        s.min_go.value           = 0
+        s.FindMin_req_val.value  = 0
+        s.FindMin_resp_rdy.value = 0
+
         s.knn_wr_data_mux_sel.value = 0
         s.knn_wr_en.value        = 0
         s.knn_wr_addr.value      = 0
@@ -536,15 +605,18 @@ class ReducerPRTL (Model):
       state_str = "INIT"
     if s.ctrl.state.out == s.ctrl.STATE_MAX:
       state_str = "MAX "
+    if s.ctrl.state.out == s.ctrl.STATE_MIN:
+      state_str = "MIN "
     if s.ctrl.state.out == s.ctrl.STATE_DONE:
       state_str = "DONE"
 
     return "{} (ct{} | wr_data{} wr_addr{} wr_en{} rd_addr{} rd_dat{} | wr_data{} wr_addr{} wr_en{} rd_addr{} rd_dat{} | qrv{}{} prv{}{} | in{}<?max{} idx{} sma{} {}) {}".format( s.req, 
-            s.ctrl.init_count,
+            s.ctrl.vote_count,
             s.dpath.knn_wr_data, s.dpath.knn_wr_addr, s.dpath.knn_wr_en,
             s.dpath.knn_rd_addr, s.dpath.knn_rd_data,
             s.dpath.vote_wr_data, s.dpath.vote_wr_addr, s.dpath.vote_wr_en,
             s.dpath.vote_rd_addr, s.dpath.vote_rd_data,
-            s.dpath.FindMax_req_rdy, s.dpath.FindMax_req_val, s.dpath.FindMax_resp_rdy, s.dpath.FindMax_resp_val,
+#            s.dpath.FindMax_req_rdy, s.dpath.FindMax_req_val, s.dpath.FindMax_resp_rdy, s.dpath.FindMax_resp_val,
+            s.dpath.FindMin_req_rdy, s.dpath.FindMin_req_val, s.dpath.FindMin_resp_rdy, s.dpath.FindMin_resp_val,
             s.dpath.req_msg_data_q, s.dpath.FindMax_resp_data, s.dpath.FindMax_resp_idx, s.ctrl.isSmaller,
             state_str, s.resp )
