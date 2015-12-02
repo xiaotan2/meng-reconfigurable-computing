@@ -1,11 +1,12 @@
 
+import math
 
-from pymtl      import *
-from pclib.ifcs import InValRdyBundle, OutValRdyBundle
-from pclib.ifcs import MemReqMsg, MemRespMsg
-from pclib.rtl  import RegRst, RegisterFile, NormalQueue, RoundRobinArbiter
-from MapperMsg  import MapperReqMsg, MapperRespMsg
-from ReducerMsg import ReducerReqMsg, ReducerRespMsg
+from pymtl       import *
+from pclib.ifcs  import InValRdyBundle, OutValRdyBundle
+from pclib.ifcs  import MemReqMsg, MemRespMsg
+from pclib.rtl   import RegRst, RegisterFile, NormalQueue, RoundRobinArbiter
+from MapperMsg   import MapperReqMsg, MapperRespMsg
+from ReducerMsg  import ReducerReqMsg, ReducerRespMsg
 from digitrecMsg import digitrecReqMsg, digitrecRespMsg
 
 TYPE_READ = 0
@@ -23,8 +24,8 @@ class SchedulerPRTL( Model ):
     s.size                = InPort          ( 32 )
 
     # Global Memory Interface
-    s.gmem_req            = OutValRdyBundle ( MemReqMsg(8, 32, 49) )
-    s.gmem_resp           = InValRdyBundle  ( MemRespMsg(8, 49) )
+    s.gmem_req            = OutValRdyBundle ( MemReqMsg(8, 32, 56) )
+    s.gmem_resp           = InValRdyBundle  ( MemRespMsg(8, 56) )
 
     # Mapper Interface
     s.map_req             = OutValRdyBundle [mapper_num] ( MapperReqMsg() )
@@ -50,7 +51,7 @@ class SchedulerPRTL( Model ):
     s.state          = RegRst( 4, reset_value = s.STATE_IDLE )
 
     # Counters
-    s.init_count     = Wire ( 2 )
+    s.init_count     = Wire ( int( math.ceil( math.log( mapper_num, 2) ) ) )
     s.input_count    = Wire ( 32 )
 
     @s.tick
@@ -66,16 +67,16 @@ class SchedulerPRTL( Model ):
     s.init           = Wire ( 1 ) # init signal indicates scheduler at initial state
     s.end            = Wire ( 1 ) # end signal indicates all task are loaded
     s.done           = Wire ( 1 ) # done signal indicates everything is done
-    s.num_task_queue = Wire ( 2 )
+    s.num_task_queue = Wire ( 4 )
 
     s.connect(s.task_queue.num_free_entries, s.num_task_queue)
 
     @s.combinational
     def logic():
-      s.mapper_done.value = s.map_resp[0].val | s.map_resp[1].val | s.map_resp[2].val |
-                            s.map_resp[3].val | s.map_resp[4].val | s.map_resp[5].val |
-                            s.map_resp[6].val | s.map_resp[7].val | s.map_resp[8].val |
-                            s.map_resp[9].val
+      s.mapper_done.value = (s.map_resp[0].val | s.map_resp[1].val | s.map_resp[2].val |
+                             s.map_resp[3].val | s.map_resp[4].val | s.map_resp[5].val |
+                             s.map_resp[6].val | s.map_resp[7].val | s.map_resp[8].val |
+                             s.map_resp[9].val)
 
     #---------------------------------------------------------------------
     # Assign Task to Mapper Combinational Logic
@@ -92,11 +93,11 @@ class SchedulerPRTL( Model ):
 
       if s.init:
       # mapper initialization, pass reference data to all mappers 1 by 1
-        s.map_req[s.init_count].msg.data.value = s.reference
+        s.map_req[s.init_count].msg.data.value  = s.reference
         s.map_req[s.init_count].msg.type_.value = 1
-        s.map_req[s.init_count].val.value = 1
-        s.idle_queue.enq.msg.value = s.init_count
-        s.idle_queue.enq.val.value = 1
+        s.map_req[s.init_count].val.value       = 1
+        s.idle_queue.enq.msg.value              = s.init_count
+        s.idle_queue.enq.val.value              = 1
       else:
       # assign task to mapper if task queue is ready to dequeue
       # idle queue is ready to dequeue and mapper is ready to take request
@@ -255,8 +256,8 @@ class SchedulerPRTL( Model ):
         # send another read req to global memory
         else:
           if s.gmem_resp.val and s.gmem_req.rdy:
-            s.task_queue.enq.msg.data.value = s.gmem_resp.msg
-            s.task_queue.enq.msg.digit.value = s.input_count % 1800
+            s.task_queue.enq.msg.data.value = s.gmem_resp.msg[0:49]
+            s.task_queue.enq.msg.digit.value = s.input_count / 1800
             s.task_queue.enq.val.value = 1
             s.gmem_resp.rdy.value      = 1
             s.gmem_req.msg.addr.value  = s.base + (4 * s.input_count)
@@ -269,8 +270,8 @@ class SchedulerPRTL( Model ):
         s.init.value = 0
 
         if s.gmem_resp.val and s.gmem_req.rdy:
-          s.task_queue.enq.msg.data.value = s.gmem_resp.msg
-          s.task_queue.enq.msg.digit.value = s.input_count % 1800
+          s.task_queue.enq.msg.data.value = s.gmem_resp.msg[0:49]
+          s.task_queue.enq.msg.digit.value = s.input_count / 1800
           s.task_queue.enq.val.value = 1
           s.gmem_resp.rdy.value = 1
           s.gmem_req.msg.addr.value = s.base + (4 * s.input_count)
@@ -280,7 +281,7 @@ class SchedulerPRTL( Model ):
       # In END state
       if (current_state == s.STATE_END):
         if s.gmem_resp.val:
-          s.task_queue.enq.msg.value = s.gmem_resp.msg
+          s.task_queue.enq.msg.value = s.gmem_resp.msg[0:49]
           s.task_queue.enq.val.value = 1
           s.gmem_resp.rdy.value = 1
           s.end.value = 1
@@ -300,6 +301,4 @@ class SchedulerPRTL( Model ):
     if s.state.out == s.STATE_END:
       state_str = "END "
 
-    return "( {}|m1:{}|m2:{}|r{}|g{}|{}|{}|{} )".format( state_str, s.map_req[0].val, 
-                                    s.map_req[1].val, s.red_req[0].val,
-                                    s.gmem_req.val, s.idle_queue.enq.val, s.num_task_queue, s.task_queue.deq.rdy)
+    return "( {}|{} )".format( state_str, s.init_count )

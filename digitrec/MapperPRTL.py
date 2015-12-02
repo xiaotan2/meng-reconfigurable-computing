@@ -304,4 +304,5 @@ class MapperPRTL (Model):
     if s.ctrl.state.out == s.ctrl.STATE_DONE:
       state_str = "DO "
 
-    return "{} ({} {} {} {} {} {} {}) {}".format( s.req, s.dpath.sel, s.dpath.data_test, s.dpath.data_train, s.dpath.is_not_equal, s.dpath.add.out, s.dpath.reg_out, state_str, s.resp )
+    return "{} ({}) {}".format(s.req.val, state_str, s.resp.val)
+#"{} ({} {} {} {} {} {} {}) {}".format( s.req, s.dpath.sel, s.dpath.data_test, s.dpath.data_train, s.dpath.is_not_equal, s.dpath.add.out, s.dpath.reg_out, state_str, s.resp )
