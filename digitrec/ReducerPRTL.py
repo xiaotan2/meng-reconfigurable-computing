@@ -7,7 +7,13 @@ import math
 from pymtl         import *
 from pclib.ifcs    import InValRdyBundle, OutValRdyBundle
 from pclib.rtl     import RegEnRst, Mux, Adder, ZeroExtender, RegRst, RegisterFile
+
 from ReducerMsg    import ReducerReqMsg, ReducerRespMsg
+
+from FindMaxPRTL   import FindMaxPRTL
+from FindMaxMsg    import FindMaxReqMsg, FindMaxRespMsg
+from FindMinPRTL   import FindMinPRTL
+from FindMinMsg    import FindMinReqMsg, FindMinRespMsg
 
 DIGIT         = 10
 TYPE_READ     = 0
@@ -22,27 +28,30 @@ class ReducerDpath (Model):
   def __init__ ( s, k = 3 ):
   
     s.req_msg_data      = InPort   (RE_DATA_SIZE) 
-    s.req_msg_digit     = InPort   (4)
     s.resp_msg_digit    = OutPort  (4)
   
     # ctrl->dpath
-    s.knn_reg_en     = InPort (1)
-    s.max_reg_en     = InPort (1)
-    s.max_mux_sel    = InPort (1)
-    s.sum_reg_en     = InPort (1)
-    s.knn_wr_addr    = InPort ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
-    s.knn_rd_addr    = InPort ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
-    # dpath->ctrl
-    s.knn_update     = OutPort(1)
-
-    # internal wires
-    s.knn_rd_data    = Wire( Bits( RE_DATA_SIZE ) )
-    s.knn_wr_data    = Wire( Bits( RE_DATA_SIZE ) )
+    s.sum_reg_en        = InPort (1)
+    s.knn_wr_addr       = InPort ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
+    s.knn_rd_addr       = InPort ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
+    s.knn_wr_en         = InPort (1)
     
-#    @s.combinational
-#    def combination_logic():
-#      s.knn_wr_data.value = 50
+    s.FindMax_req_val   = InPort (1) 
+    s.FindMax_resp_rdy  = InPort (1)
 
+    # dpath->ctrl
+    s.FindMax_req_rdy   = OutPort(1)
+    s.FindMax_resp_val  = OutPort(1)
+
+
+    # internal wires   
+    s.knn_rd_data       = Wire( Bits( RE_DATA_SIZE ) )
+    s.knn_wr_data       = Wire( Bits( RE_DATA_SIZE ) )
+
+    s.FindMax_req_data  = Wire( Bits( RE_DATA_SIZE)  )
+    s.FindMax_resp_data = Wire( Bits( RE_DATA_SIZE)  )
+    s.FindMax_resp_idx  = Wire( int( math.ceil( math.log( k, 2) ) ) ) # max 10
+    
     # register file
     s.knn_table = m = RegisterFile( dtype=Bits(RE_DATA_SIZE), 
                       nregs=k*DIGIT, rd_ports=1, wr_ports=1, const_zero=False ) 
@@ -50,20 +59,26 @@ class ReducerDpath (Model):
       m.rd_addr[0] : s.knn_rd_addr,
       m.rd_data[0] : s.knn_rd_data,
       m.wr_addr    : s.knn_wr_addr,
-      m.wr_data    : 50,
-      m.wr_en      : s.knn_update
+      m.wr_data    : 50, #s.knn_wr_data,
+      m.wr_en      : s.knn_wr_en
     })
-#    # Input Mux    
-#    s.reg_out = Wire(32)
-#
-#    s.mux = m = Mux( 32, 2)
-#    s.connect_dict({
-#      m.sel     : s.sel,
-#      m.in_[0]  : 0,
-#      m.in_[1]  : s.reg_out
-#    })
-#    
-#
+
+
+    # Find max value of knn_table for a given digit
+    s.connect_wire( s.knn_rd_data, s.FindMax_req_data )
+
+    s.findmax   = m = FindMaxPRTL( RE_DATA_SIZE, k )
+
+    s.connect_dict({
+      m.req.val       : s.FindMax_req_val,        
+      m.req.rdy       : s.FindMax_req_rdy,
+      m.req.msg.data  : s.FindMax_req_data,
+      m.resp.val      : s.FindMax_resp_val,
+      m.resp.rdy      : s.FindMax_resp_rdy,
+      m.resp.msg.data : s.FindMax_resp_data,
+      m.resp.msg.idx  : s.FindMax_resp_idx
+    })
+      
 #    # Output Register
 #    s.adder_out = Wire(32)    
 #
@@ -72,12 +87,6 @@ class ReducerDpath (Model):
 #      m.en      : s.en,
 #      m.in_     : s.adder_out,
 #      m.out     : s.reg_out
-#    })
-#
-#    # Zero Extender   
-#    s.zext = m = ZeroExtender( 1, 32 )
-#    s.connect_dict({
-#      m.in_     : s.req_msg_data
 #    })
 #
 #    # Adder    
@@ -92,10 +101,6 @@ class ReducerDpath (Model):
 #    # Connect to output port
 #    s.connect( s.reg_out, s.resp_msg_data )
     
-
-
-
-
 #=========================================================================
 # Reducer Control
 #=========================================================================
@@ -111,33 +116,39 @@ class ReducerCtrl (Model):
     s.resp_val          = OutPort (1)
     s.resp_rdy          = InPort  (1)
 
+    s.req_msg_digit     = InPort   (4)
+
     s.req_msg_type      = InPort  (2)    
     s.resp_msg_type     = OutPort (2)    
 
     # ctrl->dpath
-    s.knn_reg_en        = OutPort (1)
-    s.max_reg_en        = OutPort (1)
-    s.max_mux_sel       = OutPort (1)
     s.sum_reg_en        = OutPort (1)
     s.knn_wr_addr       = OutPort ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
     s.knn_rd_addr       = OutPort ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
+    s.knn_wr_en         = OutPort (1)
+
+    s.FindMax_req_val   = OutPort (1) 
+    s.FindMax_resp_rdy  = OutPort (1)
 
     # dpath->ctrl
-    s.knn_update        = InPort(1)
- 
+    s.FindMax_req_rdy   = InPort  (1)
+    s.FindMax_resp_val  = InPort  (1)
 
     s.msg_type_reg_en   = Wire ( Bits(1) )
     s.init_go           = Wire ( Bits(1) )
+    s.max_go            = Wire ( Bits(1) )
 
     # State element
     s.STATE_IDLE = 0
     s.STATE_INIT = 1
-    s.STATE_DONE = 2
+    s.STATE_MAX  = 2
+    s.STATE_DONE = 3
 
     s.state = RegRst( 2, reset_value = s.STATE_IDLE )
 
     # Counters
     s.init_count  = Wire ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
+    s.knn_count   = Wire ( int( math.ceil( math.log( k*DIGIT, 2) ) ) ) # max 30
 
     @s.tick
     def counter():
@@ -145,6 +156,11 @@ class ReducerCtrl (Model):
         s.init_count.next = s.init_count + 1
       else:
         s.init_count.next = 0
+
+      if ( s.max_go == 1 ):
+        s.knn_count.next  = s.knn_count  + 1
+      else:
+        s.knn_count.next  = s.req_msg_digit * k
 
     # State Transition Logic
     @s.combinational
@@ -157,14 +173,20 @@ class ReducerCtrl (Model):
       if ( curr_state == s.STATE_IDLE ):
         if ( (s.req_val and s.req_rdy) and (s.req_msg_type == 1) ):
            next_state = s.STATE_INIT
-        elif ( (s.req_val and s.req_rdy) and (s.req_msg_type == 0) ):
-           next_state = s.STATE_DONE
+        elif ( (s.req_val and s.req_rdy) and (s.req_msg_type == 0)
+                  and (s.FindMax_req_val and s.FindMax_req_rdy) ):
+           next_state = s.STATE_MAX
 
       # Transition out of INIT state
       if ( curr_state == s.STATE_INIT ):
         if ( s.init_count == k*DIGIT - 1 ):
            next_state = s.STATE_DONE 
 
+      # Transition out of MAX  state
+      if ( curr_state == s.STATE_MAX  ):
+        if ( s.FindMax_resp_val and s.FindMax_resp_rdy ):
+           next_state = s.STATE_DONE 
+      
       # Transition out of DONE state
       if ( curr_state == s.STATE_DONE ):
         if ( s.resp_val and s.resp_rdy ):
@@ -186,7 +208,20 @@ class ReducerCtrl (Model):
         s.msg_type_reg_en.value  = 1
        
         s.init_go.value          = 0
-        s.knn_update.value       = 0 
+
+        s.knn_wr_en.value        = 0
+        s.knn_wr_addr.value      = 0
+        if ( (s.req_val and s.req_rdy) and (s.req_msg_type == 0) ):
+          s.max_go.value           = 1
+          s.FindMax_req_val.value  = 1 
+          s.FindMax_resp_rdy.value = 0
+          s.knn_rd_addr.value      = s.knn_count
+        else:
+          s.FindMax_req_val.value  = 0 
+          s.FindMax_resp_rdy.value = 0
+          s.knn_rd_addr.value      = 0
+          s.max_go.value           = 0
+         
 
       # INI state
       elif current_state == s.STATE_INIT:
@@ -196,14 +231,37 @@ class ReducerCtrl (Model):
         s.msg_type_reg_en.value  = 0
        
         s.init_go.value          = 1
+        s.max_go.value           = 0
       
+        s.knn_wr_en.value        = 1
         s.knn_wr_addr.value      = s.init_count
+        s.FindMax_req_val.value  = 0 
+        s.FindMax_resp_rdy.value = 0
+        # knn_rd for debugging 
         if s.init_count == 0:
           s.knn_rd_addr.value    = 0
         else:
-          s.knn_rd_addr.value      = s.init_count - 1
-        s.knn_update.value       = 1 
- 
+          s.knn_rd_addr.value    = s.init_count - 1
+
+      # MAX state
+      elif current_state == s.STATE_MAX:
+        s.req_rdy.value          = 0
+        s.resp_val.value         = 0
+       
+        s.msg_type_reg_en.value  = 0
+       
+        s.init_go.value          = 0
+        s.max_go.value           = 1
+      
+        s.knn_wr_en.value        = 0
+        s.knn_wr_addr.value      = 0
+        s.FindMax_req_val.value  = 1 
+        s.FindMax_resp_rdy.value = 1
+        if ( s.knn_count > k*DIGIT-1 ):
+          s.knn_rd_addr.value    = 0
+        else:
+          s.knn_rd_addr.value    = s.knn_count
+
       # DONE state
       elif current_state == s.STATE_DONE:
         s.req_rdy.value          = 0
@@ -212,8 +270,14 @@ class ReducerCtrl (Model):
         s.msg_type_reg_en.value  = 0
       
         s.init_go.value          = 0
-        s.knn_update.value       = 0
+        s.max_go.value           = 0
     
+        s.knn_wr_en.value        = 0
+        s.knn_wr_addr.value      = 0
+        s.FindMax_req_val.value  = 0 
+        s.FindMax_resp_rdy.value = 0
+        s.knn_rd_addr.value      = 0x1d
+
     # Register for resp msg type     
     s.Reg_msg_type = m = RegEnRst( 2 )
     s.connect_dict({
@@ -240,7 +304,7 @@ class ReducerPRTL (Model):
 
     # connections to in/outports
     s.connect( s.req.msg.data,            s.dpath.req_msg_data  )
-    s.connect( s.req.msg.digit,           s.dpath.req_msg_digit )
+    s.connect( s.req.msg.digit,           s.ctrl.req_msg_digit  )
     s.connect( s.req.msg.type_,           s.ctrl.req_msg_type   )
     s.connect( s.req.val,                 s.ctrl.req_val        )
     s.connect( s.req.rdy,                 s.ctrl.req_rdy        )
@@ -262,7 +326,14 @@ class ReducerPRTL (Model):
       state_str = "IDLE"
     if s.ctrl.state.out == s.ctrl.STATE_INIT:
       state_str = "INIT"
+    if s.ctrl.state.out == s.ctrl.STATE_MAX:
+      state_str = "MAX "
     if s.ctrl.state.out == s.ctrl.STATE_DONE:
       state_str = "DONE"
 
-    return "{} (count{} wr_data{} addr{} wr_en{} rd_dat{} {}) {}".format( s.req, s.ctrl.init_count, s.dpath.knn_wr_data, s.ctrl.knn_wr_addr, s.dpath.knn_update, s.dpath.knn_rd_data, state_str, s.resp )
+    return "{} (count{} wr_data{} wr_addr{} wr_en{} rd_addr{} rd_dat{} qrdy{} qval{} prdy{} pval{} max{} idx{} {}) {}".format( s.req, 
+            s.ctrl.init_count, s.dpath.knn_wr_data, s.ctrl.knn_wr_addr, s.dpath.knn_wr_en,
+            s.dpath.knn_rd_addr, s.dpath.knn_rd_data,
+            s.dpath.FindMax_req_rdy, s.dpath.FindMax_req_val, s.dpath.FindMax_resp_rdy, s.dpath.FindMax_resp_val,
+            s.dpath.FindMax_resp_data, s.dpath.FindMax_resp_idx,
+            state_str, s.resp )
