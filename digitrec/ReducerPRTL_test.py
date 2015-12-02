@@ -73,8 +73,9 @@ def mk_resp_msg(  digit, type_ ):
 
 basic_msgs = [
   mk_req_msg( 0, 0, 1 ), mk_resp_msg( 0, 1 ), 
-  mk_req_msg( 0, 0, 0 ), mk_resp_msg( 0, 0 ), 
-  mk_req_msg( 0, 9, 0 ), mk_resp_msg( 0, 0 ), 
+  mk_req_msg( 3, 0, 0 ), mk_resp_msg( 0, 0 ), 
+  mk_req_msg( 5, 9, 0 ), mk_resp_msg( 0, 0 ), 
+  mk_req_msg(50, 8, 0 ), mk_resp_msg( 0, 0 ), 
 ]
 
 #-------------------------------------------------------------------------
