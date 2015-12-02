@@ -142,7 +142,7 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
                     dump_vcd, test_verilog )
 
   th.mem.write_mem( 0x1000, data_bytes )
-  run_sim( th, dump_vcd, max_cycles=5000 )
+  run_sim( th, dump_vcd, max_cycles=500 )
   
   
 @pytest.mark.parametrize( **test_case_table )
