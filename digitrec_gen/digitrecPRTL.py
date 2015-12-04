@@ -1,4 +1,3 @@
-
 from pymtl         import *
 from pclib.ifcs    import InValRdyBundle, OutValRdyBundle
 from pclib.ifcs    import MemReqMsg, MemRespMsg
@@ -7,10 +6,6 @@ from ReducerMsg    import ReducerReqMsg, ReducerRespMsg
 from SchedulerPRTL import *
 from MapperPRTL    import *
 from ReducerPRTL   import *
-
-DATA_BITS  = 49
-DIGIT      = 10
-TRAIN_DATA = 1800
 
 class digitrecPRTL( Model ):
 
@@ -29,27 +24,6 @@ class digitrecPRTL( Model ):
     s.map          = MapperPRTL  [mapper_num]  ()
     s.red          = ReducerPRTL [reducer_num] ()
     s.sche         = SchedulerPRTL ()
-
-    # Assign Register File to Mapper
-
-    s.train_data = m = RegisterFile [DIGIT] ( dtype=Bits( DATA_BITS ),
-                       nregs=TRAIN_DATA, rd_ports=mapper_num, wr_ports=1, const_zero=False )
-
-    # Connect Registerfile read port to Mapper
-    for i in xrange(DIGIT):
-      for j in xrange(mapper_num/DIGIT):
-        s.connect_dict({
-          m[i].rd_addr[j] : s.map[j*10+i].rd_addr,
-          m[i].rd_data[j] : s.map[j*10+i].rd_data,
-        })
-
-    # Connect Registerfile write port to Reducer
-    for i in xrange(DIGIT):
-      s.connect_dict({
-        m[i].wr_addr[0] : s.sche.regf_addr[i],
-        m[i].wr_data[0] : s.sche.regf_data[i],
-        m[i].wr_en      : s.sche.regf_wren[i],
-      })
 
     # Connect Framework Components
 
@@ -85,3 +59,4 @@ class digitrecPRTL( Model ):
     return s.sche.line_trace()       + " > " + \
            mapper                    + " > " + \
            reducer
+
