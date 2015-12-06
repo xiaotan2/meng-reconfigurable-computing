@@ -15,6 +15,14 @@ DATA_BITS  = 49
 DIGIT      = 10
 TRAIN_DATA = 1800
 
+# import training data and store them into array
+training_data = []
+for i in xrange(DIGIT):
+  filename = 'data/training_set_' + str(i) + '.dat'
+  with open(filename, 'r') as f:
+    for L in f:
+      training_data.append(int(L.replace(',\n',''), 16))
+
 class SchedulerPRTL( Model ):
 
   def __init__( s, mapper_num = 10, reducer_num = 1):
@@ -46,32 +54,35 @@ class SchedulerPRTL( Model ):
     s.STATE_IDLE   = 0    # Idle state, scheduler waiting for top level to start
     s.STATE_SOURCE = 1    # Source state, handling with Test Source, getting base, size, ref info
     s.STATE_INIT   = 2    # Init state, scheduler assigns input info to each Mapper
-    s.STATE_START  = 3    # Start state, scheduler starts scheduling
-    s.STATE_END    = 4    # End state, shceduler loads all task from global memory and it is done
+    s.STATE_START  = 3    # Start state, scheduler gets test data, starts distributing and sorting
+    s.STATE_READ   = 4    # Read state reads test data from global memory
+    s.STATE_END    = 5    # End state, shceduler loads all task from global memory and it is done
 
     s.state          = RegRst( 4, reset_value = s.STATE_IDLE )
 
     # Counters
-    s.init_count     = Wire ( int( math.ceil( math.log( mapper_num, 2) ) ) )
     s.input_count    = Wire ( 32 )
-    s.train_count    = Wire ( int( math.ceil( math.log( TRAIN_DATA, 2) ) ) )
+    s.train_count_rd = Wire ( int( math.ceil( math.log( TRAIN_DATA, 2) ) ) )
+    s.train_count_wr = Wire ( int( math.ceil( math.log( TRAIN_DATA, 2) ) ) )
 
     # Logic to Increment Counters
     @s.tick
     def counter():
-      if (s.idle_queue.enq.val and s.init):
-        s.init_count.next  = s.init_count + 1
       if (s.gmem_req.val):
         s.input_count.next = s.input_count + 1
       if (s.train_data_rd):
-        s.train_count.next = s.train_count + 1
+        if s.reset:
+          s.train_count_rd.next = 0
+        else:
+          s.train_count_rd.next = s.train_count_rd + (mapper_num/DIGIT)
+      if (s.train_data_wr):
+        s.train_count_wr.next = s.train_count_wr + 1
 
     # Signals
     s.go             = Wire ( 1 ) # go signal tells scheduler to start scheduling
-    s.mapper_done    = Wire ( 1 ) # if one or more mapper is done and send resp
-    s.init           = Wire ( 1 ) # init signal indicates scheduler at initial state
     s.end            = Wire ( 1 ) # end signal indicates all task are loaded
     s.done           = Wire ( 1 ) # done signal indicates everything is done
+    s.reset          = Wire ( 1 ) # reset train count every test data processed
 
     #---------------------------------------------------------------------
     # Initialize Register File for Training data
@@ -80,10 +91,10 @@ class SchedulerPRTL( Model ):
     @s.combinational
     def traindata():
 
-      if s.train_data_rd:
+      if s.train_data_wr:
         for i in xrange(DIGIT):
-          s.regf_addr[i].value = 
-          s.regf_data[i].value = 
+          s.regf_addr[i].value = s.train_count
+          s.regf_data[i].value = training_data[i*1800 + s.train_count]
           s.regf_wren[i].value = 1
       else:
         for i in xrange(DIGIT):
@@ -102,12 +113,13 @@ class SchedulerPRTL( Model ):
         s.map_req[i].val.value = 0
 
       # broadcast train data to mapper
-      for i in xrange(mapper_num):
-        if (s.map_req[i].rdy):
-          s.map_req[i].msg.data.value  = 
-          s.map_req[i].msg.digit.value = 
-          s.map_req[i].msg.type_.value = 0
-          s.map_req[i].val.value = 1
+      for i in xrange(DIGIT):
+        for j in xrange(mapper_num/DIGIT):
+          if (s.map_req[j*10+i].rdy):
+            s.map_req[j*10+i].msg.data.value    = 
+            s.map_req[j*10+i].msg.address.value = s.train_count_rd + j
+            s.map_req[j*10+i].msg.type_.value   = 0
+            s.map_req[j*10+i].val.value         = 1
 
     #---------------------------------------------------------------------
     # Send Mapper Resp to Reducer Combinational Logic
@@ -172,8 +184,15 @@ class SchedulerPRTL( Model ):
           next_state = s.STATE_START
 
       if ( curr_state == s.STATE_START ):
-        if ( s.input_count == s.size-1 ):
-          next_state = s.STATE_END
+        if ( s.train_count_rd == TRAIN_DATA):
+          if ( s.input_count == s.size-1 ):
+            next_state = s.STATE_END
+          else:
+            next_state = s.STATE_READ
+
+      if ( curr_state == s.STATE_READ ):
+        if ( s.gmem_req.val ):
+          next_state = s.STATE_START
 
       if ( curr_state == s.STATE_END ):
         if ( s.done ):
@@ -188,23 +207,23 @@ class SchedulerPRTL( Model ):
     @s.combinational
     def state_outputs():
 
-      current_state = s.state.out
-      s.gmem_req.val.value = 0
-      s.gmem_resp.rdy.value = 0
-      s.in_.rdy.value = 0
-      s.out.val.value = 0
-      s.task_queue.enq.val.value = 0
+      current_state          = s.state.out
+      s.gmem_req.val.value   = 0
+      s.gmem_resp.rdy.value  = 0
+      s.in_.rdy.value        = 0
+      s.out.val.value        = 0
 
       # In IDLE state
       if (current_state == s.STATE_IDLE):
-        s.init_count.value         = 0
         s.input_count.value        = 0
-        s.train_count.value        = 0
-        s.ref_rd.value             = 0
+        s.train_count_rd.value     = 0
+        s.train_count_wr.value     = 0
         s.end.value                = 0
         s.go.value                 = 0
-        s.init.value               = 0
+        s.train_data_rd.value      = 0
+        s.train_data_wr.value      = 0
         s.done.value               = 0
+        s.reset.value              = 0
 
       # In SOURCE state
       if (current_state == s.STATE_SOURCE):
@@ -213,18 +232,10 @@ class SchedulerPRTL( Model ):
               s.red_req[0].rdy):
             if (s.in_.msg.addr == 0):   # start computing
               s.go.value                   = 1
-              s.ref_rd.value               = 0
             elif (s.in_.msg.addr == 1): # base address
               s.base.value                 = s.in_.msg.data
             elif (s.in_.msg.addr == 2): # size
               s.size.value                 = s.in_.msg.data
-            elif (s.in_.msg.addr == 3): # reference data
-              s.reference.value            = s.in_.msg.data
-              s.ref_rd.value               = 1
-            elif (s.in_.msg.addr == 4): # local memory initialization
-              s.red_req[0].msg.data.value  = 0
-              s.red_req[0].msg.type_.value = 1 # ask reducer to start init process
-              s.red_req[0].val.value       = 1
               
             # Send xcel response message
             s.in_.rdy.value           = 1
@@ -245,24 +256,12 @@ class SchedulerPRTL( Model ):
       # In INIT state
       if (current_state == s.STATE_INIT):
 
-        s.init.value = 1
-        s.go.value   = 0
+        s.train_data_wr.value = 1
+        s.go.value            = 0
 
-        # at start of init, send read req to global memory
-        if s.init_count == 0:
+        # at the end of init, send read req to global memory
+        if s.train_count_wr == TRAIN_DATA-1:
           if s.gmem_req.rdy:
-            s.gmem_req.msg.addr.value  = s.base + (4 * s.input_count)
-            s.gmem_req.msg.type_.value = TYPE_READ
-            s.gmem_req.val.value       = 1
-
-        # at the rest of init, receive read resp to global memory, put it in task queue
-        # send another read req to global memory
-        else:
-          if s.gmem_resp.val and s.gmem_req.rdy:
-            s.task_queue.enq.msg.data.value = s.gmem_resp.msg[0:49]
-            s.task_queue.enq.msg.digit.value = s.input_count / 1800
-            s.task_queue.enq.val.value = 1
-            s.gmem_resp.rdy.value      = 1
             s.gmem_req.msg.addr.value  = s.base + (4 * s.input_count)
             s.gmem_req.msg.type_.value = TYPE_READ
             s.gmem_req.val.value       = 1
@@ -270,24 +269,25 @@ class SchedulerPRTL( Model ):
       # In START state
       if (current_state == s.STATE_START):
 
-        s.init.value = 0
+        s.train_data_wr.value        = 0
+        s.train_data_rd.value        = 1
+        s.reset.value                = 0
 
-        if s.gmem_resp.val and s.gmem_req.rdy:
-          s.task_queue.enq.msg.data.value = s.gmem_resp.msg[0:49]
-          s.task_queue.enq.msg.digit.value = s.input_count / 1800
-          s.task_queue.enq.val.value = 1
-          s.gmem_resp.rdy.value = 1
-          s.gmem_req.msg.addr.value = s.base + (4 * s.input_count)
+        if s.train_count_rd == 0 and s.gmem_resp.val:
+          s.gmem_resp.rdy.value      = 1
+          s.reference.value          = s.gmem_resp.data
+
+        if s.train_count_rd == TRAIN_DATA and s.gmem_req.rdy:
+          s.gmem_req.msg.addr.value  = s.base + (4 * s.input_count)
           s.gmem_req.msg.type_.value = TYPE_READ
-          s.gmem_req.val.value = 1
+          s.gmem_req.val.value       = 1
+          s.reset.value              = 1
 
       # In END state
       if (current_state == s.STATE_END):
         if s.gmem_resp.val:
-          s.task_queue.enq.msg.value = s.gmem_resp.msg[0:49]
-          s.task_queue.enq.val.value = 1
-          s.gmem_resp.rdy.value = 1
-          s.end.value = 1
+          s.gmem_resp.rdy.value      = 1
+          s.end.value                = 1
 
   # Line Trace
   def line_trace( s ):

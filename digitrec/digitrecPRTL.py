@@ -33,7 +33,7 @@ class digitrecPRTL( Model ):
     # Assign Register File to Mapper
 
     s.train_data = m = RegisterFile [DIGIT] ( dtype=Bits( DATA_BITS ),
-                       nregs=TRAIN_DATA, rd_ports=mapper_num, wr_ports=1, const_zero=False )
+                       nregs=TRAIN_DATA, rd_ports=mapper_num/DIGIT, wr_ports=1, const_zero=False )
 
     # Connect Registerfile read port to Mapper
     for i in xrange(DIGIT):
@@ -43,7 +43,7 @@ class digitrecPRTL( Model ):
           m[i].rd_data[j] : s.map[j*10+i].rd_data,
         })
 
-    # Connect Registerfile write port to Reducer
+    # Connect Registerfile write port to Scheduler
     for i in xrange(DIGIT):
       s.connect_dict({
         m[i].wr_addr[0] : s.sche.regf_addr[i],
