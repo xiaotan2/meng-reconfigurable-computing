@@ -11,10 +11,47 @@ from pclib.test  import TestVectorSimulator
 from FindMaxMin  import FindMax, FindMaxIdx, FindMin, FindMinIdx
 
 #-----------------------------------------------------------------------
+# FindMax 2 inpus unit test
+#-----------------------------------------------------------------------
+
+def test_FindMax_2( test_verilog, dump_vcd ):
+
+  test_vectors = [
+    # in0   in1   out
+    [ 0x01, 0x02, 0x02 ],
+    [ 0x05, 0x02, 0x05 ],
+    [ 0x00, 0x04, 0x04 ],
+    [ 0x02, 0x03, 0x03 ],
+    [ 0x06, 0x06, 0x06 ],
+    [ 0x07, 0x03, 0x07 ],
+    [ 0x08, 0x08, 0x08 ],
+    [ 0x00, 0x00, 0x00 ],
+    [ 0x32, 0x32, 0x32 ],
+    [ 0x30, 0x31, 0x31 ],
+  ]
+
+  model = FindMax( 6, 2 )
+  model.vcd_file = dump_vcd
+  if test_verilog:
+     model = TranslationTool( model )
+  model.elaborate()
+
+  def tv_in( model, test_vector ):
+    model.in_[0].value = test_vector[0]
+    model.in_[1].value = test_vector[1]
+
+  def tv_out( model, test_vector ):
+    if test_vector[2] != '?':
+      assert model.out.value == test_vector[2]
+
+  sim = TestVectorSimulator( model, test_vectors, tv_in, tv_out )
+  sim.run_test()
+
+#-----------------------------------------------------------------------
 # FindMax unit test
 #-----------------------------------------------------------------------
 
-def test_FindMax( test_verilog, dump_vcd ):
+def test_FindMax_3( test_verilog, dump_vcd ):
 
   test_vectors = [
     # in0   in1   in2   out
@@ -54,7 +91,7 @@ def test_FindMax( test_verilog, dump_vcd ):
 # FindMaxIdx unit test
 #-----------------------------------------------------------------------
 
-def test_FindMaxIdx( test_verilog, dump_vcd ):
+def test_FindMaxIdx_3( test_verilog, dump_vcd ):
 
   test_vectors = [
     # in0   in1   in2   out   idx
@@ -96,7 +133,7 @@ def test_FindMaxIdx( test_verilog, dump_vcd ):
 # FindMin unit test
 #-----------------------------------------------------------------------
 
-def test_FindMin( test_verilog, dump_vcd ):
+def test_FindMin_3( test_verilog, dump_vcd ):
 
   test_vectors = [
     # in0   in1   in2   out
@@ -134,7 +171,7 @@ def test_FindMin( test_verilog, dump_vcd ):
 # FindMinIdx unit test
 #-----------------------------------------------------------------------
 
-def test_FindMinIdx( test_verilog, dump_vcd ):
+def test_FindMinIdx_3( test_verilog, dump_vcd ):
 
   test_vectors = [
     # in0   in1   in2   out   idx
