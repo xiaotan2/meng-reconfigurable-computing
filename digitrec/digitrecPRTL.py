@@ -21,7 +21,7 @@ class digitrecPRTL( Model ):
     s.direq        = InValRdyBundle  ( digitrecReqMsg() )
     s.diresp       = OutValRdyBundle ( digitrecRespMsg() )
 
-    s.memreq       = OutValRdyBundle ( MemReqMsg(8, 32, 56) )
+    s.memreq       = OutValRdyBundle ( MemReqMsg(8, 32, 8) )
     s.memresp      = InValRdyBundle  ( MemRespMsg(8, 56) )
 
     # Framework Components
@@ -69,6 +69,9 @@ class digitrecPRTL( Model ):
     # Connect Reducer Output to Merger
     for i in xrange(reducer_num):
       s.connect_pairs ( s.red[i].out, s.mer.in_[i] )
+
+    # Connect Merger output to Scheduler
+    s.connect(s.mer.out, s.sche.merger_resp)
 
     # Connect global memory and top level to scheduler
     s.connect_pairs (

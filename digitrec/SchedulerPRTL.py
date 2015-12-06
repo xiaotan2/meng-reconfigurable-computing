@@ -6,7 +6,6 @@ from pclib.ifcs  import InValRdyBundle, OutValRdyBundle
 from pclib.ifcs  import MemReqMsg, MemRespMsg
 from pclib.rtl   import Reg, RegRst, RegisterFile, NormalQueue, RoundRobinArbiter
 from MapperMsg   import MapperReqMsg, MapperRespMsg
-from ReducerMsg  import ReducerReqMsg, ReducerRespMsg
 from digitrecMsg import digitrecReqMsg, digitrecRespMsg
 
 TYPE_READ  = 0
@@ -34,34 +33,33 @@ class SchedulerPRTL( Model ):
     s.size                = InPort          ( 32 )
 
     # Global Memory Interface
-    s.gmem_req            = OutValRdyBundle ( MemReqMsg(8, 32, 56) )
+    s.gmem_req            = OutValRdyBundle ( MemReqMsg(8, 32, 8) )
     s.gmem_resp           = InValRdyBundle  ( MemRespMsg(8, 56) )
 
     # Register File Interface
-    s.regf_addr           = Bits [DIGIT] ( 32 )
-    s.regf_data           = Bits [DIGIT] ( DATA_BITS )
-    s.regf_wren           = Bits [DIGIT] ( 1 )
+    s.regf_addr           = OutPort [DIGIT] ( 32 )
+    s.regf_data           = OutPort [DIGIT] ( DATA_BITS )
+    s.regf_wren           = OutPort [DIGIT] ( 1 )
 
     # Mapper Interface
     s.map_req             = OutValRdyBundle [mapper_num] ( MapperReqMsg() )
-    s.map_resp            = InValRdyBundle  [mapper_num] ( MapperRespMsg() )
 
-    # Reducer Interface
-    s.red_req             = OutValRdyBundle [reducer_num] ( ReducerReqMsg() )
-    s.red_resp            = InValRdyBundle  [reducer_num] ( ReducerRespMsg() )
+    # Merger Interface
+    s.merger_resp         = InPort ( 8 )
 
     # States
     s.STATE_IDLE   = 0    # Idle state, scheduler waiting for top level to start
     s.STATE_SOURCE = 1    # Source state, handling with Test Source, getting base, size, ref info
     s.STATE_INIT   = 2    # Init state, scheduler assigns input info to each Mapper
     s.STATE_START  = 3    # Start state, scheduler gets test data, starts distributing and sorting
-    s.STATE_READ   = 4    # Read state reads test data from global memory
+    s.STATE_WRITE  = 4    # Write state, scheduler writes merger data to memory
     s.STATE_END    = 5    # End state, shceduler loads all task from global memory and it is done
 
     s.state          = RegRst( 4, reset_value = s.STATE_IDLE )
 
     # Counters
     s.input_count    = Wire ( 32 )
+    s.result_count   = Wire ( 32 )
     s.train_count_rd = Wire ( int( math.ceil( math.log( TRAIN_DATA, 2) ) ) )
     s.train_count_wr = Wire ( int( math.ceil( math.log( TRAIN_DATA, 2) ) ) )
 
@@ -69,8 +67,11 @@ class SchedulerPRTL( Model ):
     @s.tick
     def counter():
 
-      if (s.gmem_req.val):
+      if (s.gmem_req.val and s.gmem_req.msg.type_ == TYPE_READ):
         s.input_count.next = s.input_count + 1
+
+      if (s.gmem_req.val and s.gmem_req.msg.type_ == TYPE_WRITE):
+        s.result_count.next = s.result_count + 1
 
       if (s.train_data_rd):
         if s.reset:
@@ -99,8 +100,8 @@ class SchedulerPRTL( Model ):
 
       if s.train_data_wr:
         for i in xrange(DIGIT):
-          s.regf_addr[i].value = s.train_count
-          s.regf_data[i].value = training_data[i*1800 + s.train_count]
+          s.regf_addr[i].value = s.train_count_wr
+          s.regf_data[i].value = training_data[i*1800 + s.train_count_wr]
           s.regf_wren[i].value = 1
       else:
         for i in xrange(DIGIT):
@@ -128,44 +129,6 @@ class SchedulerPRTL( Model ):
             s.map_req[j*10+i].val.value         = 1
 
     #---------------------------------------------------------------------
-    # Send Mapper Resp to Reducer Combinational Logic
-    #---------------------------------------------------------------------
-
-    @s.combinational
-    def reducer():
-
-      # initialize mapper and reducer handshake signals
-      for i in xrange(mapper_num):
-        s.map_resp[i].rdy.value = 0
-      for i in xrange(reducer_num):
-        s.red_req[i].val.value = 0
-
-      # get the mapper response, assign the response to reducer
-      for i in xrange(reducer_num):
-
-        # send the msg to reducer only if all its corresponding mapper are done
-        s.red_req[i].val.value = 1
-        for j in xrange(mapper_num/reducer_num):
-          if ~s.map_resp[j*10+i].val:
-            s.red_req[i].val.value = 0
-
-        # condition met, send reducer msg
-        if s.red_req[i].val:
-
-          # mark corresponding mapper response rdy
-          for j in xrange(mapper_num/reducer_num):
-            s.map_resp[j*10+i].rdy.value = 1
-
-          # send reducer msg
-          s.red_req[i].msg.data.value  = 
-          s.red_req[i].msg.digit.value = 
-          s.red_req[i].msg.type_.value = 
-
-        # if this reducer response val, mark its rdy
-        if ~s.done and s.red_resp[i].val:
-          s.red_resp[i].rdy.value      = 1
-
-    #---------------------------------------------------------------------
     # Task State Transition Logic
     #---------------------------------------------------------------------
 
@@ -186,13 +149,18 @@ class SchedulerPRTL( Model ):
           next_state = s.STATE_IDLE
 
       if ( curr_state == s.STATE_INIT ):
-        if ( s.train_count == TRAIN_DATA ):
+        if ( s.train_count_wr == TRAIN_DATA-1 ):
           next_state = s.STATE_START
 
       if ( curr_state == s.STATE_START ):
-        if ( s.train_count_rd == TRAIN_DATA):
-          if ( s.input_count == s.size-1 ):
-            next_state = s.STATE_END
+        if ( s.train_count_rd == TRAIN_DATA-1 ):
+          next_state = s.STATE_WRITE
+
+      if ( curr_state == s.STATE_WRITE ):
+        if ( s.input_count == s.size-1 ):
+          next_state = s.STATE_END
+        else:
+          next_state = s.STATE_START
 
       if ( curr_state == s.STATE_END ):
         if ( s.done ):
@@ -275,13 +243,29 @@ class SchedulerPRTL( Model ):
         s.reset.value                = 0
 
         if s.gmem_resp.val:
-          s.train_data_rd.value      = 1
-          s.reference.value          = s.gmem_resp.msg.data
+        # if response type is read, stores test data to reference, hold response val
+        # until everything is done, which is set in WRITE state
+          if s.gmem_resp.msg.type_ == TYPE_READ:
+            s.train_data_rd.value      = 1
+            s.reference.value          = s.gmem_resp.msg.data
+          else:
+        # if response tyle is write, set response rdy, send another req to
+        # read test data
+            s.gmem_resp.rdy.value      = 1
+            s.gmem_req.msg.addr.value  = s.base + (4 * s.input_count)
+            s.gmem_req.msg.type_.value = TYPE_READ
+            s.gmem_req.val.value       = 1
 
-        if s.train_count_rd == TRAIN_DATA:
+      # In WRITE state
+      if (current_state == s.STATE_WRITE):
+
+        s.train_data_rd.value        = 0
+        # one test data done processed, write result from merger to memory
+        if s.gmem_req.rdy:
           s.gmem_resp.rdy.value      = 1
-          s.gmem_req.msg.addr.value  = s.base + (4 * s.input_count)
-          s.gmem_req.msg.type_.value = TYPE_READ
+          s.gmem_req.msg.addr.value  = 0x2000 + (4 * s.result_count)
+          s.gmem_req.msg.data.value  = s.merger_resp
+          s.gmem_req.msg.type_.value = TYPE_WRITE
           s.gmem_req.val.value       = 1
           s.reset.value              = 1
 

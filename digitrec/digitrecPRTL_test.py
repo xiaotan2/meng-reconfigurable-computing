@@ -93,7 +93,7 @@ def gen_protocol_msgs( size, ref, result ):
 test_data = []
 result_data = []
 data      = []
-with open('testing_set.dat', 'r') as f:
+with open('data/testing_set.dat', 'r') as f:
   for L in f:
     L = L.replace('\n','')
     data.append(L.split(','))
