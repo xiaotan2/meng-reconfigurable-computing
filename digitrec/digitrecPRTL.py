@@ -6,6 +6,7 @@ from MapperMsg     import MapperReqMsg, MapperRespMsg
 from SchedulerPRTL import *
 from MapperPRTL    import *
 from ReducerPRTL   import *
+from MergerPRTL   import *
 
 DATA_BITS  = 49
 DIGIT      = 10
