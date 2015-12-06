@@ -3,10 +3,10 @@ from pymtl         import *
 from pclib.ifcs    import InValRdyBundle, OutValRdyBundle
 from pclib.ifcs    import MemReqMsg, MemRespMsg
 from MapperMsg     import MapperReqMsg, MapperRespMsg
-from ReducerMsg    import ReducerReqMsg, ReducerRespMsg
 from SchedulerPRTL import *
 from MapperPRTL    import *
 from ReducerPRTL   import *
+from MergerPRTL   import *
 
 DATA_BITS  = 49
 DIGIT      = 10
@@ -28,6 +28,7 @@ class digitrecPRTL( Model ):
 
     s.map          = MapperPRTL  [mapper_num]  ()
     s.red          = ReducerPRTL [reducer_num] ()
+    s.mer          = MergerPRTL    ()
     s.sche         = SchedulerPRTL ()
 
     # Assign Register File to Mapper
@@ -57,13 +58,17 @@ class digitrecPRTL( Model ):
         s.sche.map_req[i],  s.map[i].req,
       )
 
-    # Connect Mapper Response to Reducer
+    # Connect Mapper Output to Reducer
     # for 3 mapper : 1 reducer, mapper 0, 10, 20 connect to reducer 0, etc
     for i in xrange(reducer_num):
       for j in xrange(mapper_num/reducer_num):
         s.connect_pairs (
-          s.map[i+10*j].resp_data,  s.red[i].req_data[j],
+          s.map[i+10*j].out,  s.red[i].in_[j],
         )
+
+    # Connect Reducer Output to Merger
+    for i in xrange(reducer_num):
+      s.connect_pairs ( s.red[i].out, s.mer.in_[i] )
 
     # Connect global memory and top level to scheduler
     s.connect_pairs (
