@@ -15,7 +15,7 @@ class Adder( Model ):
 
     @s.combinational
     def comb_logic():
-      s.out = s.in0 + s.in1
+      s.out.value = s.in0 + s.in1
       
 
 class AdderTree( Model ):
@@ -35,14 +35,14 @@ class AdderTree( Model ):
 
     @s.combinational
     def comb_logic():
-      for ( i in xrange( k ) ):
-        s.tmp[i].value = zext( s.in_[i], sum_bits )
+      for i in xrange( k ) :
+        s.tmp[i].value = zext( s.in_[i], sum_nbits )
 
     s.connect_wire( s.adders[0].in0, s.tmp[0] )
     s.connect_wire( s.adders[0].in1, s.tmp[1] )
 
     if ( k > 2 ) :
-      for ( i in xrange( 1, k-1 ) ):
+      for i in xrange( 1, k-1 ) :
         s.connect_pairs(
           s.adders[i].in0, s.adders[i-1].out,
           s.adders[i].in1, s.tmp[i+1]
@@ -50,7 +50,12 @@ class AdderTree( Model ):
 
     s.connect( s.adders[k-2].out, s.out )
 
-
+  def line_trace( s ):
+    return "in_({} {} {}) tmp({} {} {}) adder0out({}) adder1out({})".format( 
+      s.in_[0], s.in_[1], s.in_[2], 
+      s.tmp[0], s.tmp[1], s.tmp[2],
+      s.adders[0].out, s.adders[1].out
+    )
 
 
 
