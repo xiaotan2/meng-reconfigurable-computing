@@ -51,20 +51,21 @@ class digitrecPRTL( Model ):
         m[i].wr_en      : s.sche.regf_wren[i],
       })
 
-    # Connect Framework Components
-
+    # Connect Mapper Request to Scheduler
     for i in xrange(mapper_num):
       s.connect_pairs (
         s.sche.map_req[i],  s.map[i].req,
-        s.sche.map_resp[i], s.map[i].resp,
       )
 
+    # Connect Mapper Response to Reducer
+    # for 3 mapper : 1 reducer, mapper 0, 10, 20 connect to reducer 0, etc
     for i in xrange(reducer_num):
-      s.connect_pairs (
-        s.sche.red_req[i],  s.red[i].req,
-        s.sche.red_resp[i], s.red[i].resp,
-      )
+      for j in xrange(mapper_num/reducer_num):
+        s.connect_pairs (
+          s.map[i+10*j].resp_data,  s.red[i].req_data[j],
+        )
 
+    # Connect global memory and top level to scheduler
     s.connect_pairs (
       s.sche.gmem_req,   s.memreq,
       s.sche.gmem_resp,  s.memresp,
