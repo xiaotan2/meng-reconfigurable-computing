@@ -27,7 +27,7 @@ class TestHarness (Model):
 
     # Instantiate Models
     s.src       = TestSource    ( digitrecReqMsg(),  src_msgs,  src_delay  )
-    s.di        = digitrecPRTL
+    s.di        = digitrecPRTL  (30, 10) # 30 mappers, 10 reducers
     s.sink      = TestSink      ( digitrecRespMsg(), sink_msgs, sink_delay )
     s.mem       = TestMemory    ( MemMsg(8,32,56), 1, stall_prob, latency   )
 
@@ -91,7 +91,7 @@ def gen_protocol_msgs( size, ref, result ):
 #-------------------------------------------------------------------------
 
 test_data = []
-result    = []
+result_data = []
 data      = []
 with open('testing_set.dat', 'r') as f:
   for L in f:
@@ -99,21 +99,21 @@ with open('testing_set.dat', 'r') as f:
     data.append(L.split(','))
   for row in data:
     test_data.append(int(row[0], 16))
-    result.append(int(row[1]))
+    result_data.append(int(row[1]))
 
 small_test_data = []
-small_result    = []
+small_result_data = []
 for i in xrange(4):
   small_test_data.append(int(data[i][0],16))
-  small_result.append(int(data[i][1]))
+  small_result_data.append(int(data[i][1]))
 
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
 test_case_table = mk_test_case_table([
   (                  "data            result       stall  latency  src_delay  sink_delay" ),
-  [ "basic1_0x0x0",  test_data,       1,           0,     0,       0,         0         ],
-  [ "small4_0x0x0",  small_test_data, 1,           0,     0,       0,         0         ],
+  [ "basic_0x0x0",   test_data,       1,           0,     0,       0,         0         ],
+  [ "small_0x0x0",   small_test_data, 1,           0,     0,       0,         0         ],
 ])
 
 #-------------------------------------------------------------------------
@@ -137,8 +137,20 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
 
   th.mem.write_mem( 0x1000, data_bytes )
   run_sim( th, dump_vcd, max_cycles=500 )
-  
-  
+
+  # Retrieve result from test memory
+  result_bytes = struct.pack("<{}I".format(len(result_data)),*result_data )
+  result_bytes = th.mem.read_mem( 0x2000, len(result_bytes) )
+  result_list  = list(struct.unpack("<{}I".format(len(result_data)), buffer(result_bytes)))
+
+  # Calculate error rate and print it
+  accuracy = 0
+  for i in xrange(len(result_list)):
+    if result_list[i] == result_data[i]:
+      accuracy = accuracy + 1
+  error_rate = (len(result_list)-accuracy)/len(result_list)
+  print("Overall Error Rate is: " + str(error_rate*100) + "%")
+
 @pytest.mark.parametrize( **test_case_table )
 def test( test_params, dump_vcd ):
   run_test( digitrecPRTL(), test_params, dump_vcd )
