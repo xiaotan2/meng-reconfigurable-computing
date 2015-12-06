@@ -1,112 +1,50 @@
 #=========================================================================
-# ReducerPRLT_test
+# ReducerPRTL_test
 #=========================================================================
 
 import pytest
 import random
 
 from pymtl       import *
-from pclib.test  import mk_test_case_table, run_sim
-from pclib.test  import TestSource, TestSink
+from pclib.test  import TestVectorSimulator
 
-from ReducerPRTL import ReducerPRTL
-from ReducerMsg  import ReducerReqMsg, ReducerRespMsg
+from ReducerPRTL  import *
 
-#-------------------------------------------------------------------------
-# TestHarness
-#-------------------------------------------------------------------------
-class TestHarness (Model):
+#-----------------------------------------------------------------------
+# Reducer unit test
+#-----------------------------------------------------------------------
 
-  def __init__( s, ReducerPRTL, src_msgs, sink_msgs,
-                src_delay, sink_delay,
-                dump_vcd=False, test_verilog=False ):
+def test_ReducerPRTL( test_verilog, dump_vcd ):
 
-    # Instantiate Models
-    s.src     = TestSource  ( ReducerReqMsg(),  src_msgs,  src_delay  )
-    s.reducer = ReducerPRTL
-    s.sink    = TestSink    ( ReducerRespMsg(), sink_msgs, sink_delay )
+  test_vectors = [
+    # in0   in1   in2   out
+    [ 0x32, 0x31, 0x30, 0x96 ],
+    [ 0x29, 0x28, 0x29, 0x94 ],
+    [ 0x27, 0x29, 0x28, 0x8a ],
+    [ 0x25, 0x23, 0x24, 0x7f ],
+    [ 0x30, 0x29, 0x32, 0x72 ],
+    [ 0x07, 0x03, 0x03, 0x72 ],
+    [ 0x28, 0x26, 0x25, 0x4d ],
+    [ 0x00, 0x00, 0x00, 0x4b ],
+    [ 0x32, 0x32, 0x32, 0x26 ],
+    [ 0x30, 0x31, 0x31, 0x26 ],
+  ]
 
-    # Dump VCD
-    if dump_vcd:
-      s.reducer.vcd_file = dump_vcd
+  model = ReducerPRTL( 3, 6, 3, 50 )
+  model.vcd_file = dump_vcd
+  if test_verilog:
+     model = TranslationTool( model )
+  model.elaborate()
 
-    # Translation
-    if test_verilog:
-      s.reducer = TranslationTool( s.reducer     )
+  def tv_in( model, test_vector ):
+    model.in_[0].value = test_vector[0]
+    model.in_[1].value = test_vector[1]
+    model.in_[2].value = test_vector[2]
 
-    # Connect
-    s.connect( s.src.out,           s.reducer.req     )
-    s.connect( s.reducer.resp,      s.sink.in_        )
+  def tv_out( model, test_vector ):
+    if test_vector[3] != '?':
+      assert model.out.value == test_vector[3]
 
-  def done(s):
-    return s.src.done and s.sink.done
-  
-  def line_trace(s):
-    return s.src.line_trace()     + " > " + \
-           s.reducer.line_trace() + " > " + \
-           s.sink.line_trace()    
-
-#-------------------------------------------------------------------------
-# mk_req_msg
-#-------------------------------------------------------------------------
-
-def mk_req_msg( data, digit, type_ ):
-  msg       = ReducerReqMsg()
-  msg.data  = data
-  msg.digit = digit
-  msg.type_ = type_
-  return msg
-
-#-------------------------------------------------------------------------
-# mk_resp_msg
-#-------------------------------------------------------------------------
-
-def mk_resp_msg(  digit, type_ ):
-  msg       = ReducerRespMsg()
-  msg.digit = digit
-  msg.type_ = type_
-  return msg
-
-#-------------------------------------------------------------------------
-# Test Case: basic
-#-------------------------------------------------------------------------
-
-basic_msgs = [
-  mk_req_msg( 0, 0, 1 ), mk_resp_msg( 0, 1 ), 
-  mk_req_msg( 6, 0, 0 ), mk_resp_msg( 0, 0 ), 
-  mk_req_msg( 2, 9, 0 ), mk_resp_msg( 0, 0 ), 
-  mk_req_msg(50, 8, 0 ), mk_resp_msg( 0, 0 ), 
-  mk_req_msg( 0, 8, 2 ), mk_resp_msg( 9, 2 ), 
-]
-
-#-------------------------------------------------------------------------
-# Test Case Table
-#-------------------------------------------------------------------------
-
-test_case_table = mk_test_case_table([
-  (               "msgs         src_delay  sink_delay" ),
-  [ "basic_0x0",  basic_msgs,   0,         0,          ], 
-])
-
-
-
-#-------------------------------------------------------------------------
-# Run Test
-#-------------------------------------------------------------------------
-
-def run_test( reducer, test_params, dump_vcd, test_verilog=False ):
-
-  reducer_reqs   = test_params.msgs[::2]
-  reducer_resps  = test_params.msgs[1::2]
-
-  th = TestHarness( reducer, reducer_reqs, reducer_resps,
-                    test_params.src_delay, test_params.sink_delay,
-                    dump_vcd, test_verilog )
-
-  run_sim( th, dump_vcd, max_cycles=70 )
-
-
-@pytest.mark.parametrize( **test_case_table )
-def test( test_params, dump_vcd ):
-  run_test( ReducerPRTL(), test_params, dump_vcd )
+  sim = TestVectorSimulator( model, test_vectors, tv_in, tv_out )
+  sim.run_test()
 
