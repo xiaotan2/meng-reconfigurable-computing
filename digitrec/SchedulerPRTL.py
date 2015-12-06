@@ -4,7 +4,7 @@ import math
 from pymtl       import *
 from pclib.ifcs  import InValRdyBundle, OutValRdyBundle
 from pclib.ifcs  import MemReqMsg, MemRespMsg
-from pclib.rtl   import RegRst, RegisterFile, NormalQueue, RoundRobinArbiter
+from pclib.rtl   import Reg, RegRst, RegisterFile, NormalQueue, RoundRobinArbiter
 from MapperMsg   import MapperReqMsg, MapperRespMsg
 from ReducerMsg  import ReducerReqMsg, ReducerRespMsg
 from digitrecMsg import digitrecReqMsg, digitrecRespMsg
@@ -68,13 +68,16 @@ class SchedulerPRTL( Model ):
     # Logic to Increment Counters
     @s.tick
     def counter():
+
       if (s.gmem_req.val):
         s.input_count.next = s.input_count + 1
+
       if (s.train_data_rd):
         if s.reset:
           s.train_count_rd.next = 0
         else:
           s.train_count_rd.next = s.train_count_rd + (mapper_num/DIGIT)
+
       if (s.train_data_wr):
         s.train_count_wr.next = s.train_count_wr + 1
 
@@ -83,6 +86,9 @@ class SchedulerPRTL( Model ):
     s.end            = Wire ( 1 ) # end signal indicates all task are loaded
     s.done           = Wire ( 1 ) # done signal indicates everything is done
     s.reset          = Wire ( 1 ) # reset train count every test data processed
+
+    # Reference data
+    s.reference      = Reg()      # reference stores test data
 
     #---------------------------------------------------------------------
     # Initialize Register File for Training data
@@ -115,8 +121,8 @@ class SchedulerPRTL( Model ):
       # broadcast train data to mapper
       for i in xrange(DIGIT):
         for j in xrange(mapper_num/DIGIT):
-          if (s.map_req[j*10+i].rdy):
-            s.map_req[j*10+i].msg.data.value    = 
+          if (s.map_req[j*10+i].rdy and s.train_data_rd):
+            s.map_req[j*10+i].msg.data.value    = s.reference
             s.map_req[j*10+i].msg.address.value = s.train_count_rd + j
             s.map_req[j*10+i].msg.type_.value   = 0
             s.map_req[j*10+i].val.value         = 1
@@ -187,12 +193,6 @@ class SchedulerPRTL( Model ):
         if ( s.train_count_rd == TRAIN_DATA):
           if ( s.input_count == s.size-1 ):
             next_state = s.STATE_END
-          else:
-            next_state = s.STATE_READ
-
-      if ( curr_state == s.STATE_READ ):
-        if ( s.gmem_req.val ):
-          next_state = s.STATE_START
 
       if ( curr_state == s.STATE_END ):
         if ( s.done ):
@@ -218,6 +218,7 @@ class SchedulerPRTL( Model ):
         s.input_count.value        = 0
         s.train_count_rd.value     = 0
         s.train_count_wr.value     = 0
+        s.reference.value          = 0
         s.end.value                = 0
         s.go.value                 = 0
         s.train_data_rd.value      = 0
@@ -270,14 +271,15 @@ class SchedulerPRTL( Model ):
       if (current_state == s.STATE_START):
 
         s.train_data_wr.value        = 0
-        s.train_data_rd.value        = 1
+        s.train_data_rd.value        = 0
         s.reset.value                = 0
 
-        if s.train_count_rd == 0 and s.gmem_resp.val:
-          s.gmem_resp.rdy.value      = 1
-          s.reference.value          = s.gmem_resp.data
+        if s.gmem_resp.val:
+          s.train_data_rd.value      = 1
+          s.reference.value          = s.gmem_resp.msg.data
 
-        if s.train_count_rd == TRAIN_DATA and s.gmem_req.rdy:
+        if s.train_count_rd == TRAIN_DATA:
+          s.gmem_resp.rdy.value      = 1
           s.gmem_req.msg.addr.value  = s.base + (4 * s.input_count)
           s.gmem_req.msg.type_.value = TYPE_READ
           s.gmem_req.val.value       = 1
@@ -304,4 +306,4 @@ class SchedulerPRTL( Model ):
     if s.state.out == s.STATE_END:
       state_str = "END "
 
-    return "( {}|{} )".format( state_str, s.init_count )
+    return "( {}|{}|{} )".format( state_str, s.input_count, s.train_count_rd )

@@ -81,8 +81,6 @@ def gen_protocol_msgs( size, ref, result ):
   return [
     req( 'wr', 1, 0x1000 ), resp( 'wr', 0      ),
     req( 'wr', 2, size   ), resp( 'wr', 0      ),
-    req( 'wr', 3, ref    ), resp( 'wr', 0      ),
-    req( 'wr', 4, 0      ), resp( 'wr', 0      ),
     req( 'wr', 0, 0      ), resp( 'wr', 0      ),
     req( 'rd', 0, 0      ), resp( 'rd', result ),
   ]
@@ -92,33 +90,30 @@ def gen_protocol_msgs( size, ref, result ):
 # Test Case: basic
 #-------------------------------------------------------------------------
 
-training_data = []
-for i in xrange(10):
-  filename = 'data/training_set_' + str(i) + '.dat'
-  with open(filename, 'r') as f:
-    for L in f:
-      training_data.append(int(L.replace(',\n',''), 16))
+test_data = []
+result    = []
+data      = []
+with open('testing_set.dat', 'r') as f:
+  for L in f:
+    L = L.replace('\n','')
+    data.append(L.split(','))
+  for row in data:
+    test_data.append(int(row[0], 16))
+    result.append(int(row[1]))
 
-
-small_train_data = []
-for i in xrange(10):
-  filename = 'data/training_set_' + str(i) + '.dat'
-  with open(filename, 'r') as f:
-    count = 0
-    for L in f:
-      small_train_data.append(int(L.replace(',\n',''), 16))
-      count += 1
-      if count >=10:
-        break
-
+small_test_data = []
+small_result    = []
+for i in xrange(4):
+  small_test_data.append(int(data[i][0],16))
+  small_result.append(int(data[i][1]))
 
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
 test_case_table = mk_test_case_table([
-  (                  "data             ref              result       stall  latency  src_delay  sink_delay" ),
-  [ "basic1_0x0x0",  training_data,    0x3041060800,    1,           0,     0,       0,         0         ],
-  [ "small4_0x0x0",  small_train_data, 0x41c3830408,    1,           0,     0,       0,         0         ],
+  (                  "data            result       stall  latency  src_delay  sink_delay" ),
+  [ "basic1_0x0x0",  test_data,       1,           0,     0,       0,         0         ],
+  [ "small4_0x0x0",  small_test_data, 1,           0,     0,       0,         0         ],
 ])
 
 #-------------------------------------------------------------------------
@@ -128,11 +123,10 @@ test_case_table = mk_test_case_table([
 def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
 
   data       = test_params.data
-  ref        = test_params.ref
   result     = test_params.result
   data_bytes = struct.pack("<{}Q".format(len(data)), *data)
   
-  digitrec_protocol_msgs = gen_protocol_msgs( len(data), ref, result )
+  digitrec_protocol_msgs = gen_protocol_msgs( len(data), result )
   digitrec_reqs          = digitrec_protocol_msgs[::2]
   digitrec_resps         = digitrec_protocol_msgs[1::2]
 
