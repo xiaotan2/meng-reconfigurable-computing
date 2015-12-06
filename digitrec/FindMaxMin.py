@@ -34,13 +34,14 @@ class FindMax( Model ):
           s.cmps[i].in1,    s.muxs[i-1].out
         )
   
-    s.connect( s.muxs[k-2], s.out )
+    s.connect( s.muxs[k-2].out, s.out )
 
 
   def line_trace( s ):
 
-    return "{}".format(
-      s.mux[0].sel
+    return "in0({}) in1({}) in2({}) sel0({}) mux0({}) sel1({}) mux1({})".format(
+      s.in_[0], s.in_[1], s.in_[2],
+      s.muxs[0].sel, s.muxs[0].out, s.muxs[1].sel, s.muxs[1].out
     )
 
 
@@ -77,19 +78,23 @@ class FindMaxIdx( Model ):
 
     @s.combinational
     def comb_logic():
-    
+   
+      s.idx.value = 0 
       for i in range( k-1 ):
-        if ( s.muxs[i].sel == 1 ):
-          s.idx.value = i
-        else 
-          s.idx.value = 0
+        if (s.muxs[i].sel == 1 ):
+          if ( i == 0 ):
+            s.idx.value = s.muxs[i].sel
+          else:
+            s.idx.value = i+1
 
-    s.connect( s.muxs[k-2], s.out )
+    s.connect( s.muxs[k-2].out, s.out )
   
   def line_trace( s ):
 
-    return "{}".format(
-      s.mux[0].sel
+    return "in0({}) in1({}) in2({}) sel0({}) mux0({}) sel1({}) mux1({}) idx({})".format(
+      s.in_[0], s.in_[1], s.in_[2],
+      s.muxs[0].sel, s.muxs[0].out, s.muxs[1].sel, s.muxs[1].out,
+      s.idx
     )
 
 class FindMin( Model ):
@@ -120,13 +125,14 @@ class FindMin( Model ):
           s.cmps[i].in1,    s.muxs[i-1].out
         )
 
-    s.connect( s.muxs[k-2], s.out )
+    s.connect( s.muxs[k-2].out, s.out )
 
 
   def line_trace( s ):
 
-    return "{}".format(
-      s.mux[0].sel
+    return "in0({}) in1({}) in2({}) sel0({}) mux0({}) sel1({}) mux1({})".format(
+      s.in_[0], s.in_[1], s.in_[2],
+      s.muxs[0].sel, s.muxs[0].out, s.muxs[1].sel, s.muxs[1].out
     )
 
 class FindMinIdx( Model ):
@@ -160,19 +166,24 @@ class FindMinIdx( Model ):
           s.cmps[i].in1,    s.muxs[i-1].out
         )
 
+
     @s.combinational
     def comb_logic():
 
+      s.idx.value = 0
       for i in range( k-1 ):
-        if ( s.muxs[i].sel == 1 ):
-          s.idx.value = i
-        else
-          s.idx.value = 0
+        if (s.muxs[i].sel == 1 ):
+          if ( i == 0 ):
+            s.idx.value = s.muxs[i].sel
+          else:
+            s.idx.value = i+1
 
-    s.connect( s.muxs[k-2], s.out )
+    s.connect( s.muxs[k-2].out, s.out )
 
   def line_trace( s ):
 
-    return "{}".format(
-      s.mux[0].sel
+    return "in0({}) in1({}) in2({}) sel0({}) mux0({}) sel1({}) mux1({}), idx({})".format(
+      s.in_[0], s.in_[1], s.in_[2],
+      s.muxs[0].sel, s.muxs[0].out, s.muxs[1].sel, s.muxs[1].out,
+      s.idx
     )
