@@ -7,13 +7,17 @@ from MapperPRTL    import *
 from ReducerPRTL   import *
 from MergerPRTL   import *
 
+import math
+
 DATA_BITS  = 49
 DIGIT      = 10
 TRAIN_DATA = 1800
 
 class digitrecPRTL( Model ):
 
-  def __init__( s, mapper_num = 30, reducer_num = 10):
+  def __init__( s, mapper_num = 30, reducer_num = 10, k = 3, nbits = 6 ):
+
+    sum_nbits = int( math.ceil( math.log( (2**nbits-1)*k, 2 ) ) )
 
     # Interface
 
@@ -26,9 +30,9 @@ class digitrecPRTL( Model ):
     # Framework Components
 
     s.map          = MapperPRTL  [mapper_num]  ()
-    s.red          = ReducerPRTL [reducer_num] ()
-    s.mer          = MergerPRTL    ()
-    s.sche         = SchedulerPRTL (mapper_num = mapper_num)
+    s.red          = ReducerPRTL [reducer_num] ( mapper_num/reducer_num, nbits, k, 50 )
+    s.mer          = MergerPRTL                ( reducer_num, sum_nbits )
+    s.sche         = SchedulerPRTL             (mapper_num = mapper_num)
 
     # Assign Register File to Mapper
 
@@ -68,6 +72,12 @@ class digitrecPRTL( Model ):
         s.connect_pairs (
           s.map[i+10*j].out,  s.red[i].in_[j],
         )
+
+    # Connect rst signal from Scheduler to Reducer
+    for i in xrange( reducer_num ):
+      s.connect_pairs( 
+        s.sche.red_rst, s.red[i].rst,
+      )
 
     # Connect Reducer Output to Merger
     for i in xrange(reducer_num):
