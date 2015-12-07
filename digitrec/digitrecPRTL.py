@@ -13,14 +13,14 @@ TRAIN_DATA = 1800
 
 class digitrecPRTL( Model ):
 
-  def __init__( s, mapper_num = 10, reducer_num = 1):
+  def __init__( s, mapper_num = 30, reducer_num = 10):
 
     # Interface
 
     s.direq        = InValRdyBundle  ( digitrecReqMsg() )
     s.diresp       = OutValRdyBundle ( digitrecRespMsg() )
 
-    s.memreq       = OutValRdyBundle ( MemReqMsg(8, 32, 8) )
+    s.memreq       = OutValRdyBundle ( MemReqMsg(8, 32, 56) )
     s.memresp      = InValRdyBundle  ( MemRespMsg(8, 56) )
 
     # Framework Components
@@ -28,7 +28,7 @@ class digitrecPRTL( Model ):
     s.map          = MapperPRTL  [mapper_num]  ()
     s.red          = ReducerPRTL [reducer_num] ()
     s.mer          = MergerPRTL    ()
-    s.sche         = SchedulerPRTL ()
+    s.sche         = SchedulerPRTL (mapper_num = mapper_num)
 
     # Assign Register File to Mapper
 
@@ -38,24 +38,28 @@ class digitrecPRTL( Model ):
     # Connect Registerfile read port to Mapper
     for i in xrange(DIGIT):
       for j in xrange(mapper_num/DIGIT):
-        s.connect_dict({
-          m[i].rd_data[j] : s.map[j*10+i].rd_data,
-        })
+        s.connect(
+          m[i].rd_data[j], s.map[j*10+i].in0,
+        )
 
     # Connect Registerfile write port to Scheduler
     for i in xrange(DIGIT):
       s.connect_dict({
-        m[i].wr_addr[0] : s.sche.regf_addr[i],
-        m[i].wr_data[0] : s.sche.regf_data[i],
-        m[i].wr_en      : s.sche.regf_wren[i],
+        m[i].wr_addr : s.sche.regf_addr[i],
+        m[i].wr_data : s.sche.regf_data[i],
+        m[i].wr_en   : s.sche.regf_wren[i],
       })
 
     # Connect Registerfile rd port to Scheduler
     for i in xrange( DIGIT ):
       for j in xrange( mapper_num/DIGIT ):
-        s.connect_dict({
-          m[i].rd_addr[j] : s.sche.regf_rdaddr[j]
+        s.connect(
+          m[i].rd_addr[j], s.sche.regf_rdaddr[j*10+i],
         )
+
+    # Connect Mapper test data port to Scheduler
+    for i in xrange(mapper_num):
+      s.connect(s.sche.map_req[i], s.map[i].in1)
 
     # Connect Mapper Output to Reducer
     # for 3 mapper : 1 reducer, mapper 0, 10, 20 connect to reducer 0, etc

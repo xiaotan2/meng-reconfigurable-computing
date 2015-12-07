@@ -27,7 +27,7 @@ class TestHarness (Model):
 
     # Instantiate Models
     s.src       = TestSource    ( digitrecReqMsg(),  src_msgs,  src_delay  )
-    s.di        = digitrecPRTL  (30, 10) # 30 mappers, 10 reducers
+    s.di        = digitrecPRTL
     s.sink      = TestSink      ( digitrecRespMsg(), sink_msgs, sink_delay )
     s.mem       = TestMemory    ( MemMsg(8,32,56), 1, stall_prob, latency   )
 
@@ -77,7 +77,7 @@ def resp( type, data ):
 # Protocol 
 #-------------------------------------------------------------------------
 
-def gen_protocol_msgs( size, ref, result ):
+def gen_protocol_msgs( size, result ):
   return [
     req( 'wr', 1, 0x1000 ), resp( 'wr', 0      ),
     req( 'wr', 2, size   ), resp( 'wr', 0      ),
@@ -153,4 +153,4 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
 
 @pytest.mark.parametrize( **test_case_table )
 def test( test_params, dump_vcd ):
-  run_test( digitrecPRTL(), test_params, dump_vcd )
+  run_test( digitrecPRTL(mapper_num = 30, reducer_num = 10), test_params, dump_vcd )
