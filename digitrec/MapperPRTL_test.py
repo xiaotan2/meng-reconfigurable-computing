@@ -5,97 +5,43 @@
 import pytest
 import random
 
-from pymtl       import *
-from pclib.test  import mk_test_case_table, run_sim
-from pclib.test  import TestSource, TestSink
+from pymtl        import *
+from pclib.test   import TestVectorSimulator
 
-from MapperPRTL import MapperPRTL
-from MapperMsg  import MapperReqMsg, MapperRespMsg
+from MapperPRTL   import MapperPRTL
+from DistancePRTL import *
 
-#-------------------------------------------------------------------------
-# TestHarness
-#-------------------------------------------------------------------------
-class TestHarness (Model):
 
-  def __init__( s, MapperPRTL, src_msgs, sink_msgs,
-               src_delay, sink_delay,
-               dump_vcd=False, test_verilog=False ):
+def test_mapper( test_verilog, dump_vcd ):
 
-    # Instantiate Models
-    s.src     = TestSource  ( MapperReqMsg(),  src_msgs,  src_delay  )
-    s.mapper  = MapperPRTL ()
-    s.sink    = TestSink    ( MapperRespMsg(), sink_msgs, sink_delay )
+  a = random.randint(0,0x1ffffffffffff)
+  b = random.randint(0,0x1ffffffffffff)
+  c = Bits(49,a ^ b)
+  d = Bits(49,0)
+  for i in xrange(49):
+    d += c[i:i+1]
 
-    # Dump VCD
-    if dump_vcd:
-      s.mapper.vcd_file = dump_vcd
+  test_vectors = [
+     # in0              in1              out
+     [ 0x1ffffffffffff, 0x0000000000000, 0x31],
+     [ a,               b,               d   ]
+  ]
 
-    # Translation
-    if test_verilog:
-      s.mapper = TranslationTool( s.mapper )
+  model = MapperPRTL()
+  model.vcd_file = dump_vcd
+  if test_verilog:
+    model = TranslationTool( model )
+  model.elaborate()
 
-    # Connect
-    s.connect( s.src.out,      s.mapper.req )
-    s.connect( s.mapper.resp,  s.sink.in_   )
-
-  def done(s):
-    return s.src.done and s.sink.done
+  def tv_in( model, test_vector ):
+    model.in0.value = test_vector[0]
+    model.in1.value = test_vector[1]
   
-  def line_trace(s):
-    return s.src.line_trace()     + " > " + \
-           s.mapper.line_trace() + " > " + \
-           s.sink.line_trace()    
+  def tv_out( model, test_vector ):
+    if test_vector[2] != '?':
+      assert model.out.value == test_vector[2]
 
-#-------------------------------------------------------------------------
-# mk_req_msg
-#-------------------------------------------------------------------------
+  sim = TestVectorSimulator( model, test_vectors, tv_in, tv_out )
+  sim.run_test()
 
-def mk_req_msg( data, type, digit ):
-  msg       = MapperReqMsg()
-  msg.data  = data
-  msg.type_ = type
-  msg.digit = digit
-  return msg
-
-#-------------------------------------------------------------------------
-# mk_resp_msg
-#-------------------------------------------------------------------------
-
-def mk_resp_msg( data, type, digit ):
-  msg       = MapperRespMsg()
-  msg.data  = data
-  msg.type_ = type
-  msg.digit = digit
-  return msg
-
-#-------------------------------------------------------------------------
-# Test Case: basic
-#-------------------------------------------------------------------------
-
-basic_msgs = [
-  mk_req_msg( 0x1034, 1, 4 ), None,
-  mk_req_msg( 0x2015, 0, 4 ), mk_resp_msg( 0x4, 0, 4 ),
-  mk_req_msg( 0x1f31, 0, 4 ), mk_resp_msg( 0x6, 0, 4 ),
-  mk_req_msg( 0xf752, 0, 4 ), mk_resp_msg( 0xa, 0, 4 ),
-]
-
-#-------------------------------------------------------------------------
-# Test Case Table
-#-------------------------------------------------------------------------
-
-test_case_table = mk_test_case_table([
-  (               "msgs       src_delay  sink_delay" ),
-  [ "basic_0x0",  basic_msgs, 0,         0           ], 
-])
-
-#-------------------------------------------------------------------------
-# Test cases
-#-------------------------------------------------------------------------
-
-@pytest.mark.parametrize( **test_case_table )
-def test( test_params, dump_vcd ):
-  run_sim( TestHarness( MapperPRTL,
-                        test_params.msgs[::2], test_params.msgs[3::2],
-                        test_params.src_delay, test_params.sink_delay ),
-           dump_vcd )
 
