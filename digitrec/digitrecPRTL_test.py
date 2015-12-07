@@ -27,7 +27,7 @@ class TestHarness (Model):
 
     # Instantiate Models
     s.src       = TestSource    ( digitrecReqMsg(),  src_msgs,  src_delay  )
-    s.di        = digitrecPRTL  (30, 10) # 30 mappers, 10 reducers
+    s.di        = digitrecPRTL
     s.sink      = TestSink      ( digitrecRespMsg(), sink_msgs, sink_delay )
     s.mem       = TestMemory    ( MemMsg(8,32,56), 1, stall_prob, latency   )
 
@@ -49,9 +49,10 @@ class TestHarness (Model):
     return s.src.done and s.sink.done
   
   def line_trace(s):
-    return s.src.line_trace()       + " > " + \
-           s.di.line_trace() + " > " + \
-           s.sink.line_trace()    
+    return s.di.line_trace(mapper_num = 30, reducer_num=10)
+#s.src.line_trace()       + " > " + \
+#           s.di.line_trace(mapper_num=30, reducer_num=10) + " > " + \
+#           s.sink.line_trace()    
 
 
 #-------------------------------------------------------------------------
@@ -77,7 +78,7 @@ def resp( type, data ):
 # Protocol 
 #-------------------------------------------------------------------------
 
-def gen_protocol_msgs( size, ref, result ):
+def gen_protocol_msgs( size, result ):
   return [
     req( 'wr', 1, 0x1000 ), resp( 'wr', 0      ),
     req( 'wr', 2, size   ), resp( 'wr', 0      ),
@@ -103,7 +104,7 @@ with open('data/testing_set.dat', 'r') as f:
 
 small_test_data = []
 small_result_data = []
-for i in xrange(4):
+for i in xrange(1):
   small_test_data.append(int(data[i][0],16))
   small_result_data.append(int(data[i][1]))
 
@@ -136,7 +137,7 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
                     dump_vcd, test_verilog )
 
   th.mem.write_mem( 0x1000, data_bytes )
-  run_sim( th, dump_vcd, max_cycles=500 )
+  run_sim( th, dump_vcd, max_cycles=3000 )
 
   # Retrieve result from test memory
   result_bytes = struct.pack("<{}I".format(len(result_data)),*result_data )
@@ -153,4 +154,4 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
 
 @pytest.mark.parametrize( **test_case_table )
 def test( test_params, dump_vcd ):
-  run_test( digitrecPRTL(), test_params, dump_vcd )
+  run_test( digitrecPRTL(mapper_num = 30, reducer_num = 10), test_params, dump_vcd )
