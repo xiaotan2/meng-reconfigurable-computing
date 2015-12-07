@@ -2,7 +2,6 @@
 from pymtl         import *
 from pclib.ifcs    import InValRdyBundle, OutValRdyBundle
 from pclib.ifcs    import MemReqMsg, MemRespMsg
-from MapperMsg     import MapperReqMsg, MapperRespMsg
 from SchedulerPRTL import *
 from MapperPRTL    import *
 from ReducerPRTL   import *
@@ -40,7 +39,6 @@ class digitrecPRTL( Model ):
     for i in xrange(DIGIT):
       for j in xrange(mapper_num/DIGIT):
         s.connect_dict({
-          m[i].rd_addr[j] : s.map[j*10+i].rd_addr,
           m[i].rd_data[j] : s.map[j*10+i].rd_data,
         })
 
@@ -52,11 +50,12 @@ class digitrecPRTL( Model ):
         m[i].wr_en      : s.sche.regf_wren[i],
       })
 
-    # Connect Mapper Request to Scheduler
-    for i in xrange(mapper_num):
-      s.connect_pairs (
-        s.sche.map_req[i],  s.map[i].req,
-      )
+    # Connect Registerfile rd port to Scheduler
+    for i in xrange( DIGIT ):
+      for j in xrange( mapper_num/DIGIT ):
+        s.connect_dict({
+          m[i].rd_addr[j] : s.sche.regf_rdaddr[j]
+        )
 
     # Connect Mapper Output to Reducer
     # for 3 mapper : 1 reducer, mapper 0, 10, 20 connect to reducer 0, etc
