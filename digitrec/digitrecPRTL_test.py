@@ -49,9 +49,10 @@ class TestHarness (Model):
     return s.src.done and s.sink.done
   
   def line_trace(s):
-    return s.src.line_trace()       + " > " + \
-           s.di.line_trace() + " > " + \
-           s.sink.line_trace()    
+    return s.di.line_trace(mapper_num = 30, reducer_num=10)
+#s.src.line_trace()       + " > " + \
+#           s.di.line_trace(mapper_num=30, reducer_num=10) + " > " + \
+#           s.sink.line_trace()    
 
 
 #-------------------------------------------------------------------------
@@ -103,7 +104,7 @@ with open('data/testing_set.dat', 'r') as f:
 
 small_test_data = []
 small_result_data = []
-for i in xrange(4):
+for i in xrange(1):
   small_test_data.append(int(data[i][0],16))
   small_result_data.append(int(data[i][1]))
 
@@ -136,7 +137,7 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
                     dump_vcd, test_verilog )
 
   th.mem.write_mem( 0x1000, data_bytes )
-  run_sim( th, dump_vcd, max_cycles=500 )
+  run_sim( th, dump_vcd, max_cycles=3000 )
 
   # Retrieve result from test memory
   result_bytes = struct.pack("<{}I".format(len(result_data)),*result_data )

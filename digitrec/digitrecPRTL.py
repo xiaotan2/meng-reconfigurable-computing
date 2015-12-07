@@ -84,15 +84,15 @@ class digitrecPRTL( Model ):
       s.diresp,          s.sche.out,
     )
 
-  def line_trace(s, mapper_num = 10, reducer_num = 1):
+  def line_trace(s, mapper_num = 30, reducer_num=10):
 
     mapper = ""
-    for i in xrange(mapper_num):
-      mapper = mapper + s.map[i].line_trace() + " > "
+#    for i in xrange(mapper_num):
+#      mapper = mapper + s.map[i].line_trace() + " > "
 
     reducer = ""
-    for i in xrange(reducer_num):
-      reducer = reducer + s.red[i].line_trace() + " > "
+#    for i in xrange(reducer_num):
+#      reducer = reducer + s.red[i].line_trace() + " > "
 
     return s.sche.line_trace()       + " > " + \
            mapper                    + " > " + \

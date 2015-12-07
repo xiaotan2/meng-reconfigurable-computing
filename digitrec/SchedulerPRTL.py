@@ -14,6 +14,8 @@ DIGIT      = 10
 DIGIT_LOG  = int(math.ceil(math.log(DIGIT, 2)))
 TRAIN_DATA = 1800
 TRAIN_LOG  = int(math.ceil(math.log(TRAIN_DATA, 2)))
+TEST_DATA  = 180
+TEST_LOG   = int(math.ceil(math.log(TEST_DATA, 2)))
 
 # import training data and store them into array
 training_data = []
@@ -46,6 +48,9 @@ class SchedulerPRTL( Model ):
     # Mapper Interface
     s.map_req             = OutPort [mapper_num] ( DATA_BITS )
 
+    # Reducer Reset
+    s.red_rst             = OutPort ( 1 )
+
     # Merger Interface
     s.merger_resp         = InPort ( DIGIT_LOG )
 
@@ -60,8 +65,8 @@ class SchedulerPRTL( Model ):
     s.state          = RegRst( 4, reset_value = s.STATE_IDLE )
 
     # Counters
-    s.input_count    = Wire ( 32 )
-    s.result_count   = Wire ( 32 )
+    s.input_count    = Wire ( TEST_LOG )
+    s.result_count   = Wire ( TEST_LOG )
     s.train_count_rd = Wire ( TRAIN_LOG )
     s.train_count_wr = Wire ( TRAIN_LOG )
     s.train_data_wr  = Wire ( 1 )
@@ -93,7 +98,7 @@ class SchedulerPRTL( Model ):
     s.reset          = Wire ( 1 ) # reset train count every test data processed
 
     # Reference data
-    s.reference      = Reg()      # reference stores test data
+    s.reference      = Reg(dtype=DATA_BITS)      # reference stores test data
 
     #---------------------------------------------------------------------
     # Initialize Register File for Training data
@@ -123,8 +128,8 @@ class SchedulerPRTL( Model ):
       for i in xrange(DIGIT):
         for j in xrange(mapper_num/DIGIT):
           if (s.train_data_rd):
-            s.map_req[j*10+i].value             = s.reference
-            s.regf_rdaddr.value                 = s.train_count_rd + j
+            s.map_req[j*10+i].value             = s.reference.out
+            s.regf_rdaddr[j*10+i].value         = s.train_count_rd + j
 
     #---------------------------------------------------------------------
     # Task State Transition Logic
@@ -151,11 +156,11 @@ class SchedulerPRTL( Model ):
           next_state = s.STATE_START
 
       if ( curr_state == s.STATE_START ):
-        if ( s.train_count_rd == TRAIN_DATA-1 ):
+        if ( s.train_count_rd == TRAIN_DATA-3 ):
           next_state = s.STATE_WRITE
 
       if ( curr_state == s.STATE_WRITE ):
-        if ( s.input_count == s.size-1 ):
+        if ( s.input_count == s.size ):
           next_state = s.STATE_END
         else:
           next_state = s.STATE_START
@@ -190,6 +195,7 @@ class SchedulerPRTL( Model ):
         s.train_data_wr.value      = 0
         s.done.value               = 0
         s.reset.value              = 0
+        s.red_rst.value            = 0
 
       # In SOURCE state
       if (current_state == s.STATE_SOURCE):
@@ -229,6 +235,7 @@ class SchedulerPRTL( Model ):
             s.gmem_req.msg.addr.value  = s.base + (4 * s.input_count)
             s.gmem_req.msg.type_.value = TYPE_READ
             s.gmem_req.val.value       = 1
+            s.red_rst.value            = 1
 
       # In START state
       if (current_state == s.STATE_START):
@@ -236,13 +243,14 @@ class SchedulerPRTL( Model ):
         s.train_data_wr.value        = 0
         s.train_data_rd.value        = 0
         s.reset.value                = 0
+        s.red_rst.value              = 0
 
         if s.gmem_resp.val:
         # if response type is read, stores test data to reference, hold response val
         # until everything is done, which is set in WRITE state
           if s.gmem_resp.msg.type_ == TYPE_READ:
             s.train_data_rd.value      = 1
-            s.reference.value          = s.gmem_resp.msg.data
+            s.reference.in_.value       = s.gmem_resp.msg.data
           else:
         # if response tyle is write, set response rdy, send another req to
         # read test data
@@ -250,13 +258,14 @@ class SchedulerPRTL( Model ):
             s.gmem_req.msg.addr.value  = s.base + (4 * s.input_count)
             s.gmem_req.msg.type_.value = TYPE_READ
             s.gmem_req.val.value       = 1
+            s.red_rst.value            = 1
 
       # In WRITE state
       if (current_state == s.STATE_WRITE):
 
         s.train_data_rd.value        = 0
         # one test data done processed, write result from merger to memory
-        if s.gmem_req.rdy:
+        if ( s.input_count != s.size and s.gmem_req.rdy ):
           s.gmem_resp.rdy.value      = 1
           s.gmem_req.msg.addr.value  = 0x2000 + (4 * s.result_count)
           s.gmem_req.msg.data.value  = s.merger_resp
@@ -282,7 +291,10 @@ class SchedulerPRTL( Model ):
       state_str = "INIT"
     if s.state.out == s.STATE_START:
       state_str = "ST  "
+    if s.state.out == s.STATE_WRITE:
+      state_str = "WRI "
     if s.state.out == s.STATE_END:
       state_str = "END "
 
-    return "( {}|{}|{} )".format( state_str, s.input_count, s.train_count_rd )
+    return "( {}|{}|{}|{}|{}|{} )".format( state_str, s.input_count, s.train_count_rd,
+                                   s.regf_rdaddr[0], s.map_req[0], s.done )
