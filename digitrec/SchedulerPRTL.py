@@ -12,18 +12,22 @@ TYPE_WRITE = 1
 DATA_BITS  = 49
 DIGIT      = 10
 DIGIT_LOG  = int(math.ceil(math.log(DIGIT, 2)))
-TRAIN_DATA = 1800
+TRAIN_DATA = 6
 TRAIN_LOG  = int(math.ceil(math.log(TRAIN_DATA, 2)))
 TEST_DATA  = 180
 TEST_LOG   = int(math.ceil(math.log(TEST_DATA, 2)))
 
 # import training data and store them into array
 training_data = []
+count = 0
 for i in xrange(DIGIT):
   filename = 'data/training_set_' + str(i) + '.dat'
   with open(filename, 'r') as f:
     for L in f:
+      if(count > TRAIN_DATA):
+        break;
       training_data.append(int(L.replace(',\n',''), 16))
+      count = count + 1
 
 class SchedulerPRTL( Model ):
 

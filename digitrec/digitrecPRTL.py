@@ -11,7 +11,7 @@ import math
 
 DATA_BITS  = 49
 DIGIT      = 10
-TRAIN_DATA = 1800
+TRAIN_DATA = 6
 
 class digitrecPRTL( Model ):
 

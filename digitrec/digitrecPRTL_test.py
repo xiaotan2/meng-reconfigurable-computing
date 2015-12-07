@@ -104,9 +104,9 @@ with open('data/testing_set.dat', 'r') as f:
 
 small_test_data = []
 small_result_data = []
-for i in xrange(2):
-  small_test_data.append(int(data[i][0],16))
-  small_result_data.append(int(data[i][1]))
+for i in xrange(10):
+  small_test_data.append(int(data[i*18+4][0],16))
+  small_result_data.append(int(data[i*18+4][1]))
 
 #-------------------------------------------------------------------------
 # Test Case Table
@@ -137,17 +137,20 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
                     dump_vcd, test_verilog )
 
   th.mem.write_mem( 0x1000, data_bytes )
-  run_sim( th, dump_vcd, max_cycles=3000 )
+  run_sim( th, dump_vcd, max_cycles=110000 )
 
   # Retrieve result from test memory
-  result_bytes = struct.pack("<{}I".format(len(result_data)),*result_data )
+  result_bytes = struct.pack("<{}Q".format(len(small_result_data)),*small_result_data )
   result_bytes = th.mem.read_mem( 0x2000, len(result_bytes) )
-  result_list  = list(struct.unpack("<{}I".format(len(result_data)), buffer(result_bytes)))
+  result_list  = list(struct.unpack("<{}Q".format(len(small_result_data)), buffer(result_bytes)))
+
+  for i in xrange(len(result_list)):
+    print(str(i) + "th data digit: " + str(result_list[i]) + " it shoud be " + str(small_result_data[i]))
 
   # Calculate error rate and print it
   accuracy = 0
   for i in xrange(len(result_list)):
-    if result_list[i] == result_data[i]:
+    if result_list[i] == small_result_data[i]:
       accuracy = accuracy + 1
   error_rate = (len(result_list)-accuracy)/len(result_list)
   print("Overall Error Rate is: " + str(error_rate*100) + "%")
