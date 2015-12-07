@@ -185,7 +185,6 @@ class SchedulerPRTL( Model ):
         s.train_count_rd.value     = 0
         s.train_count_wr.value     = 0
         s.reference.value          = 0
-        s.end.value                = 0
         s.go.value                 = 0
         s.train_data_rd.value      = 0
         s.train_data_wr.value      = 0
