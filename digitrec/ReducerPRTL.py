@@ -19,6 +19,7 @@ class ReducerPRTL( Model ):
     # interface
     s.in_      = [ InPort( nbits ) for _ in range( mapper_num ) ]
     s.out      = OutPort( sum_nbits )
+    s.rst      = InPort ( 1 )
 
     # internal wires
     s.min_dist = Wire( Bits( nbits      ) )
@@ -27,6 +28,7 @@ class ReducerPRTL( Model ):
     s.isLess   = Wire( Bits( 1          ) )
 
     s.rd_data  = Wire[k]( Bits(nbits      ) )
+    s.wr_data  = Wire   ( Bits(nbits      ) )
     s.wr_addr  = Wire[k]( Bits(addr_nbits ) )
     s.wr_en    = Wire[k]( Bits(1          ) )
    
@@ -59,11 +61,24 @@ class ReducerPRTL( Model ):
     # choose the smaller one write back
     @s.combinational
     def comb_logic():
-      for i in xrange ( k ):
-        if ( i == s.max_idx ):
-          s.wr_en[i].value = s.isLess
-        else:
-          s.wr_en[i].value = 0
+      if ( s.rst == 1 ):
+        for i in xrange ( k ):
+          s.wr_en[i].value = 1
+      else:
+        for i in xrange ( k ):
+          if ( i == s.max_idx ):
+            s.wr_en[i].value = s.isLess
+          else:
+            s.wr_en[i].value = 0
+
+    # mux for wr_data
+    s.wr_data_mux = m = Mux( nbits, 2 )
+    s.connect_dict({
+      m.in_[0]    :  s.min_dist,
+      m.in_[1]    :  rst_value,
+      m.sel       :  s.rst,
+      m.out       :  s.wr_data
+    })
 
     # Registers
     s.regs     = [ RegEnRst( nbits, rst_value ) for i in xrange( k ) ]
@@ -71,7 +86,7 @@ class ReducerPRTL( Model ):
     for i in xrange( k ):
 
       s.connect_pairs(
-        s.regs[i].in_, s.min_dist,
+        s.regs[i].in_, s.wr_data,
         s.regs[i].out, s.rd_data[i],
         s.regs[i].en , s.wr_en[i]
       )
