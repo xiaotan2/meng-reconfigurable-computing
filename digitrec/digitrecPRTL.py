@@ -20,8 +20,8 @@ class digitrecPRTL( Model ):
     s.direq        = InValRdyBundle  ( digitrecReqMsg() )
     s.diresp       = OutValRdyBundle ( digitrecRespMsg() )
 
-    s.memreq       = OutValRdyBundle ( MemReqMsg(8, 32, 56) )
-    s.memresp      = InValRdyBundle  ( MemRespMsg(8, 56) )
+    s.memreq       = OutValRdyBundle ( MemReqMsg(8, 32, 64) )
+    s.memresp      = InValRdyBundle  ( MemRespMsg(8, 64) )
 
     # Framework Components
 

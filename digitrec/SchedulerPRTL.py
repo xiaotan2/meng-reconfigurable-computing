@@ -36,8 +36,8 @@ class SchedulerPRTL( Model ):
     s.size                = InPort          ( 32 )
 
     # Global Memory Interface
-    s.gmem_req            = OutValRdyBundle ( MemReqMsg(8, 32, 56) )
-    s.gmem_resp           = InValRdyBundle  ( MemRespMsg(8, 56) )
+    s.gmem_req            = OutValRdyBundle ( MemReqMsg(8, 32, 64) )
+    s.gmem_resp           = InValRdyBundle  ( MemRespMsg(8, 64) )
 
     # Register File Interface
     s.regf_addr           = OutPort [DIGIT] ( TRAIN_LOG )
@@ -83,11 +83,10 @@ class SchedulerPRTL( Model ):
       if (s.gmem_req.val and s.gmem_req.msg.type_ == TYPE_WRITE):
         s.result_count.next = s.result_count + 1
 
-      if (s.train_data_rd):
-        if s.reset:
-          s.train_count_rd.next = 0
-        else:
-          s.train_count_rd.next = s.train_count_rd + (mapper_num/DIGIT)
+      if s.rst:
+        s.train_count_rd.next = 0
+      elif s.train_data_rd:
+        s.train_count_rd.next = s.train_count_rd + (mapper_num/DIGIT)
 
       if (s.train_data_wr):
         s.train_count_wr.next = s.train_count_wr + 1
@@ -95,7 +94,7 @@ class SchedulerPRTL( Model ):
     # Signals
     s.go             = Wire ( 1 ) # go signal tells scheduler to start scheduling
     s.done           = Wire ( 1 ) # done signal indicates everything is done
-    s.reset          = Wire ( 1 ) # reset train count every test data processed
+    s.rst            = Wire ( 1 ) # reset train count every test data processed
 
     # Reference data
     s.reference      = Reg(dtype=DATA_BITS)      # reference stores test data
@@ -194,7 +193,7 @@ class SchedulerPRTL( Model ):
         s.train_data_rd.value      = 0
         s.train_data_wr.value      = 0
         s.done.value               = 0
-        s.reset.value              = 0
+        s.rst.value                = 0
         s.red_rst.value            = 0
 
       # In SOURCE state
@@ -232,7 +231,7 @@ class SchedulerPRTL( Model ):
         # at the end of init, send read req to global memory
         if s.train_count_wr == TRAIN_DATA-1:
           if s.gmem_req.rdy:
-            s.gmem_req.msg.addr.value  = s.base + (4 * s.input_count)
+            s.gmem_req.msg.addr.value  = s.base + (8 * s.input_count)
             s.gmem_req.msg.type_.value = TYPE_READ
             s.gmem_req.val.value       = 1
             s.red_rst.value            = 1
@@ -241,21 +240,21 @@ class SchedulerPRTL( Model ):
       if (current_state == s.STATE_START):
 
         s.train_data_wr.value        = 0
-        s.train_data_rd.value        = 0
-        s.reset.value                = 0
+        s.train_data_rd.value        = 1
+        s.rst.value                  = 0
         s.red_rst.value              = 0
 
         if s.gmem_resp.val:
         # if response type is read, stores test data to reference, hold response val
         # until everything is done, which is set in WRITE state
           if s.gmem_resp.msg.type_ == TYPE_READ:
-            s.train_data_rd.value      = 1
-            s.reference.in_.value       = s.gmem_resp.msg.data
+            s.gmem_resp.rdy.value      = 1
+            s.reference.in_.value      = s.gmem_resp.msg.data
           else:
         # if response tyle is write, set response rdy, send another req to
         # read test data
             s.gmem_resp.rdy.value      = 1
-            s.gmem_req.msg.addr.value  = s.base + (4 * s.input_count)
+            s.gmem_req.msg.addr.value  = s.base + (8 * s.input_count)
             s.gmem_req.msg.type_.value = TYPE_READ
             s.gmem_req.val.value       = 1
             s.red_rst.value            = 1
@@ -265,13 +264,12 @@ class SchedulerPRTL( Model ):
 
         s.train_data_rd.value        = 0
         # one test data done processed, write result from merger to memory
-        if ( s.input_count != s.size and s.gmem_req.rdy ):
-          s.gmem_resp.rdy.value      = 1
-          s.gmem_req.msg.addr.value  = 0x2000 + (4 * s.result_count)
+        if ( s.gmem_req.rdy ):
+          s.gmem_req.msg.addr.value  = 0x2000 + (8 * s.result_count)
           s.gmem_req.msg.data.value  = s.merger_resp
           s.gmem_req.msg.type_.value = TYPE_WRITE
           s.gmem_req.val.value       = 1
-          s.reset.value              = 1
+          s.rst.value                = 1
 
       # In END state
       if (current_state == s.STATE_END):
@@ -297,4 +295,4 @@ class SchedulerPRTL( Model ):
       state_str = "END "
 
     return "( {}|{}|{}|{}|{}|{} )".format( state_str, s.input_count, s.train_count_rd,
-                                   s.regf_rdaddr[0], s.map_req[0], s.done )
+                                   s.regf_rdaddr[0], s.gmem_resp.msg.data, s.merger_resp )

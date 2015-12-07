@@ -29,7 +29,7 @@ class TestHarness (Model):
     s.src       = TestSource    ( digitrecReqMsg(),  src_msgs,  src_delay  )
     s.di        = digitrecPRTL
     s.sink      = TestSink      ( digitrecRespMsg(), sink_msgs, sink_delay )
-    s.mem       = TestMemory    ( MemMsg(8,32,56), 1, stall_prob, latency   )
+    s.mem       = TestMemory    ( MemMsg(8,32,64), 1, stall_prob, latency   )
 
     # Dump VCD
     if dump_vcd:
@@ -104,7 +104,7 @@ with open('data/testing_set.dat', 'r') as f:
 
 small_test_data = []
 small_result_data = []
-for i in xrange(1):
+for i in xrange(2):
   small_test_data.append(int(data[i][0],16))
   small_result_data.append(int(data[i][1]))
 
