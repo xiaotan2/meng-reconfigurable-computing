@@ -262,6 +262,7 @@ class SchedulerPRTL( Model ):
             s.gmem_req.msg.type_.value = TYPE_READ
             s.gmem_req.val.value       = 1
             s.red_rst.value            = 1
+            s.train_data_rd.value      = 0
 
       # In WRITE state
       if (current_state == s.STATE_WRITE):
