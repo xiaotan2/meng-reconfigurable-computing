@@ -72,7 +72,7 @@ class SchedulerPRTL( Model ):
     s.input_count    = Wire ( TEST_LOG )
     s.result_count   = Wire ( TEST_LOG )
     s.train_count_rd = Wire ( TRAIN_LOG )
-    s.train_count_wr = Wire ( TRAIN_LOG )
+    s.train_count_wr = Wire ( 32 )
     s.train_data_wr  = Wire ( 1 )
     s.train_data_rd  = Wire ( 1 )
 
