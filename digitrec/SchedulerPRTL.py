@@ -19,8 +19,8 @@ TEST_LOG   = int(math.ceil(math.log(TEST_DATA, 2)))
 
 # import training data and store them into array
 training_data = []
-count = 0
 for i in xrange(DIGIT):
+  count = 0
   filename = 'data/training_set_' + str(i) + '.dat'
   with open(filename, 'r') as f:
     for L in f:
@@ -47,7 +47,7 @@ class SchedulerPRTL( Model ):
     s.regf_addr           = OutPort [DIGIT] ( TRAIN_LOG )
     s.regf_data           = OutPort [DIGIT] ( DATA_BITS )
     s.regf_wren           = OutPort [DIGIT] ( 1 )
-    s.regf_rdaddr         = OutPort [mapper_num] ( TRAIN_LOG )
+    s.regf_rdaddr         = OutPort [mapper_num/reducer_num] ( TRAIN_LOG )
 
     # Mapper Interface
     s.map_req             = OutPort [mapper_num] ( DATA_BITS )
@@ -113,7 +113,7 @@ class SchedulerPRTL( Model ):
       if s.train_data_wr:
         for i in xrange(DIGIT):
           s.regf_addr[i].value = s.train_count_wr
-          s.regf_data[i].value = training_data[i*1800 + s.train_count_wr]
+          s.regf_data[i].value = training_data[i*TRAIN_DATA + s.train_count_wr]
           s.regf_wren[i].value = 1
       else:
         for i in xrange(DIGIT):
@@ -132,7 +132,7 @@ class SchedulerPRTL( Model ):
         for j in xrange(mapper_num/DIGIT):
           if (s.train_data_rd):
             s.map_req[j*10+i].value             = s.reference.out
-            s.regf_rdaddr[j*10+i].value         = s.train_count_rd + j
+            s.regf_rdaddr[j].value              = s.train_count_rd + j  
 
     #---------------------------------------------------------------------
     # Task State Transition Logic
@@ -299,5 +299,16 @@ class SchedulerPRTL( Model ):
     if s.state.out == s.STATE_END:
       state_str = "END "
 
-    return "( {}|{}|{}|{}|{}|{} )".format( state_str, s.input_count, s.train_count_rd,
-                                   s.regf_rdaddr[0], s.gmem_resp.msg.data, s.merger_resp )
+#    return "( {} ({} {} {}))".format( state_str, s.regf_rdaddr[0], s.regf_rdaddr[1], s.regf_rdaddr[2] )
+    return "( {}|{}|{}|({} {} {} {} {} {} {} {} {} {})|{}|{}|{} )".format( state_str, s.input_count, s.train_count_rd,
+                                   s.regf_data[0], 
+                                   s.regf_data[1], 
+                                   s.regf_data[2], 
+                                   s.regf_data[3], 
+                                   s.regf_data[4], 
+                                   s.regf_data[5], 
+                                   s.regf_data[6], 
+                                   s.regf_data[7], 
+                                   s.regf_data[8], 
+                                   s.regf_data[9], 
+                                   s.regf_addr[0], s.train_count_wr, s.merger_resp )

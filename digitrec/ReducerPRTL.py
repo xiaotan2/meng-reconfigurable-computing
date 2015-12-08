@@ -100,10 +100,11 @@ class ReducerPRTL( Model ):
 
 
   def line_trace( s ):
-    return "in_({} {} {}) min_dist({}) max_dist({}) isLess({}) data({} {} {}) wr_en({} {} {}) sum({})".format(
+#     return "in_({} {} {}) min_dist({}) max_dist({}) isLess({}) data({} {} {}) wr_en({} {} {}) sum({})".format(
+    return "i({} {} {}) d({} {} {}) s({})".format(
       s.in_[0], s.in_[1], s.in_[2],
-      s.min_dist, s.max_dist, s.isLess, 
+#      s.min_dist, s.max_dist, s.isLess, 
       s.rd_data[0], s.rd_data[1], s.rd_data[2],
-      s.wr_en[0], s.wr_en[1], s.wr_en[2],
+#      s.wr_en[0], s.wr_en[1], s.wr_en[2],
       s.out
     ) 

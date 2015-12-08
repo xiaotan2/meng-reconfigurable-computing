@@ -56,9 +56,9 @@ class digitrecPRTL( Model ):
 
     # Connect Registerfile rd port to Scheduler
     for i in xrange( DIGIT ):
-      for j in xrange( mapper_num/DIGIT ):
+      for j in xrange( mapper_num/reducer_num ):
         s.connect(
-          m[i].rd_addr[j], s.sche.regf_rdaddr[j*10+i],
+          m[i].rd_addr[j], s.sche.regf_rdaddr[j],
         )
 
     # Connect Mapper test data port to Scheduler
