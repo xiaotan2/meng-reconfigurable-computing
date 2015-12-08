@@ -11,7 +11,7 @@ import math
 
 DATA_BITS  = 49
 DIGIT      = 10
-TRAIN_DATA = 6
+TRAIN_DATA = 60
 
 class digitrecPRTL( Model ):
 
@@ -32,7 +32,7 @@ class digitrecPRTL( Model ):
     s.map          = MapperPRTL  [mapper_num]  ()
     s.red          = ReducerPRTL [reducer_num] ( mapper_num/reducer_num, nbits, k, 50 )
     s.mer          = MergerPRTL                ( reducer_num, sum_nbits )
-    s.sche         = SchedulerPRTL             (mapper_num = mapper_num)
+    s.sche         = SchedulerPRTL             (mapper_num = mapper_num, reducer_num = reducer_num)
 
     # Assign Register File to Mapper
 

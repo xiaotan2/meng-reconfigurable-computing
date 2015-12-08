@@ -12,7 +12,7 @@ TYPE_WRITE = 1
 DATA_BITS  = 49
 DIGIT      = 10
 DIGIT_LOG  = int(math.ceil(math.log(DIGIT, 2)))
-TRAIN_DATA = 6
+TRAIN_DATA = 60
 TRAIN_LOG  = int(math.ceil(math.log(TRAIN_DATA, 2)))
 TEST_DATA  = 180
 TEST_LOG   = int(math.ceil(math.log(TEST_DATA, 2)))
@@ -159,7 +159,7 @@ class SchedulerPRTL( Model ):
           next_state = s.STATE_START
 
       if ( curr_state == s.STATE_START ):
-        if ( s.train_count_rd == TRAIN_DATA-3 ):
+        if ( s.train_count_rd == TRAIN_DATA-(mapper_num/DIGIT) ):
           next_state = s.STATE_WRITE
 
       if ( curr_state == s.STATE_WRITE ):
