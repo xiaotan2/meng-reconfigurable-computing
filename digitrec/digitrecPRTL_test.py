@@ -104,9 +104,9 @@ with open('data/testing_set.dat', 'r') as f:
 
 small_test_data = []
 small_result_data = []
-for i in xrange(10):
-  small_test_data.append(int(data[i*18+4][0],16))
-  small_result_data.append(int(data[i*18+4][1]))
+for i in xrange(30):
+  small_test_data.append(int(data[i*6+4][0],16))
+  small_result_data.append(int(data[i*6+4][1]))
 
 #-------------------------------------------------------------------------
 # Test Case Table

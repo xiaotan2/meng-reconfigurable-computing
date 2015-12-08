@@ -24,7 +24,7 @@ for i in xrange(DIGIT):
   filename = 'data/training_set_' + str(i) + '.dat'
   with open(filename, 'r') as f:
     for L in f:
-      if(count > TRAIN_DATA):
+      if(count > TRAIN_DATA - 1):
         break;
       training_data.append(int(L.replace(',\n',''), 16))
       count = count + 1
