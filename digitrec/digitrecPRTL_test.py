@@ -152,7 +152,7 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
   for i in xrange(len(result_list)):
     if result_list[i] == small_result_data[i]:
       accuracy = accuracy + 1
-  error_rate = (len(result_list)-accuracy)/len(result_list)
+  error_rate = float((len(result_list)-accuracy))/len(result_list)
   print("Overall Error Rate is: " + str(error_rate*100) + "%")
 
 @pytest.mark.parametrize( **test_case_table )
