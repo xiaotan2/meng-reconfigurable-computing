@@ -104,9 +104,9 @@ with open('data/testing_set.dat', 'r') as f:
 
 small_test_data = []
 small_result_data = []
-for i in xrange(30):
-  small_test_data.append(int(data[i*6+4][0],16))
-  small_result_data.append(int(data[i*6+4][1]))
+for i in xrange(180):
+  small_test_data.append(int(data[i][0],16))
+  small_result_data.append(int(data[i][1]))
 
 #-------------------------------------------------------------------------
 # Test Case Table
@@ -137,7 +137,7 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
                     dump_vcd, test_verilog )
 
   th.mem.write_mem( 0x1000, data_bytes )
-  run_sim( th, dump_vcd, max_cycles=110000 )
+  run_sim( th, dump_vcd, max_cycles=200000 )
 
   # Retrieve result from test memory
   result_bytes = struct.pack("<{}Q".format(len(small_result_data)),*small_result_data )
@@ -157,4 +157,4 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
 
 @pytest.mark.parametrize( **test_case_table )
 def test( test_params, dump_vcd ):
-  run_test( digitrecPRTL(mapper_num = 60, reducer_num = 10), test_params, dump_vcd )
+  run_test( digitrecPRTL(mapper_num = 30, reducer_num = 10), test_params, dump_vcd )
