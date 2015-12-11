@@ -12,7 +12,7 @@ TYPE_WRITE = 1
 DATA_BITS  = 49
 DIGIT      = 10
 DIGIT_LOG  = int(math.ceil(math.log(DIGIT, 2)))
-TRAIN_DATA = 60
+TRAIN_DATA = 600
 TRAIN_LOG  = int(math.ceil(math.log(TRAIN_DATA, 2)))
 TEST_DATA  = 180
 TEST_LOG   = int(math.ceil(math.log(TEST_DATA, 2)))
@@ -299,16 +299,17 @@ class SchedulerPRTL( Model ):
     if s.state.out == s.STATE_END:
       state_str = "END "
 
+    return "( {} | in_c {} | train_count {} | digit {} )".format( state_str, s.input_count, s.train_count_rd, s.merger_resp )
 #    return "( {} ({} {} {}))".format( state_str, s.regf_rdaddr[0], s.regf_rdaddr[1], s.regf_rdaddr[2] )
-    return "( {}|{}|{}|({} {} {} {} {} {} {} {} {} {})|{}|{}|{} )".format( state_str, s.input_count, s.train_count_rd,
-                                   s.regf_data[0], 
-                                   s.regf_data[1], 
-                                   s.regf_data[2], 
-                                   s.regf_data[3], 
-                                   s.regf_data[4], 
-                                   s.regf_data[5], 
-                                   s.regf_data[6], 
-                                   s.regf_data[7], 
-                                   s.regf_data[8], 
-                                   s.regf_data[9], 
-                                   s.regf_addr[0], s.train_count_wr, s.merger_resp )
+#    return "( {}|{}|{}|({} {} {} {} {} {} {} {} {} {})|{}|{}|{} )".format( state_str, s.input_count, s.train_count_rd,
+#                                   s.regf_data[0], 
+#                                   s.regf_data[1], 
+#                                   s.regf_data[2], 
+#                                   s.regf_data[3], 
+#                                   s.regf_data[4], 
+#                                   s.regf_data[5], 
+#                                   s.regf_data[6], 
+#                                   s.regf_data[7], 
+#                                   s.regf_data[8], 
+#                                   s.regf_data[9], 
+#                                   s.regf_addr[0], s.train_count_wr, s.merger_resp )

@@ -37,7 +37,7 @@ class TestHarness (Model):
 
     # Translation
     if test_verilog:
-      s.di = TranslationTool( s.wordcount )
+      s.di = TranslationTool( s.di )
 
     # Connect
     s.connect( s.src.out,           s.di.direq )
@@ -157,4 +157,4 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
 
 @pytest.mark.parametrize( **test_case_table )
 def test( test_params, dump_vcd ):
-  run_test( digitrecPRTL(mapper_num = 60, reducer_num = 10), test_params, dump_vcd )
+  run_test( digitrecPRTL(mapper_num = 60, reducer_num = 10), test_params, dump_vcd, test_verilog=False )

@@ -11,7 +11,7 @@ import math
 
 DATA_BITS  = 49
 DIGIT      = 10
-TRAIN_DATA = 60
+TRAIN_DATA = 600
 
 class digitrecPRTL( Model ):
 
@@ -99,10 +99,12 @@ class digitrecPRTL( Model ):
     mapper = ""
 #    for i in xrange(mapper_num):
 #      mapper = mapper + s.map[i].line_trace() + " > "
+    mapper = mapper + s.map[0].line_trace()
 
     reducer = ""
 #    for i in xrange(reducer_num):
 #      reducer = reducer + s.red[i].line_trace() + " > "
+    reducer = reducer + s.red[0].line_trace()
 
     return s.sche.line_trace()       + " > " + \
            mapper                    + " > " + \
