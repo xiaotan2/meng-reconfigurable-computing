@@ -89,13 +89,13 @@ class FindMaxIdx( Model ):
 
     s.connect( s.muxs[k-2].out, s.out )
   
-  def line_trace( s ):
-
-    return "in0({}) in1({}) in2({}) sel0({}) mux0({}) sel1({}) mux1({}) idx({})".format(
-      s.in_[0], s.in_[1], s.in_[2],
-      s.muxs[0].sel, s.muxs[0].out, s.muxs[1].sel, s.muxs[1].out,
-      s.idx
-    )
+#  def line_trace( s ):
+#
+#    return "in0({}) in1({}) in2({}) sel0({}) mux0({}) sel1({}) mux1({}) idx({})".format(
+#      s.in_[0], s.in_[1], s.in_[2],
+#      s.muxs[0].sel, s.muxs[0].out, s.muxs[1].sel, s.muxs[1].out,
+#      s.idx
+#    )
 
 class FindMin( Model ):
  
@@ -128,12 +128,12 @@ class FindMin( Model ):
     s.connect( s.muxs[k-2].out, s.out )
 
 
-  def line_trace( s ):
-
-    return "in0({}) in1({}) in2({}) sel0({}) mux0({}) sel1({}) mux1({})".format(
-      s.in_[0], s.in_[1], s.in_[2],
-      s.muxs[0].sel, s.muxs[0].out, s.muxs[1].sel, s.muxs[1].out
-    )
+#  def line_trace( s ):
+#
+#    return "in0({}) in1({}) in2({}) sel0({}) mux0({}) sel1({}) mux1({})".format(
+#      s.in_[0], s.in_[1], s.in_[2],
+#      s.muxs[0].sel, s.muxs[0].out, s.muxs[1].sel, s.muxs[1].out
+#    )
 
 class FindMinIdx( Model ):
 
@@ -180,10 +180,10 @@ class FindMinIdx( Model ):
 
     s.connect( s.muxs[k-2].out, s.out )
 
-  def line_trace( s ):
-
-    return "in0({}) in1({}) in2({}) sel0({}) mux0({}) sel1({}) mux1({}), idx({})".format(
-      s.in_[0], s.in_[1], s.in_[2],
-      s.muxs[0].sel, s.muxs[0].out, s.muxs[1].sel, s.muxs[1].out,
-      s.idx
-    )
+#  def line_trace( s ):
+#
+#    return "in0({}) in1({}) in2({}) sel0({}) mux0({}) sel1({}) mux1({}), idx({})".format(
+#      s.in_[0], s.in_[1], s.in_[2],
+#      s.muxs[0].sel, s.muxs[0].out, s.muxs[1].sel, s.muxs[1].out,
+#      s.idx
+#    )
