@@ -301,7 +301,7 @@ class SchedulerPRTL( Model ):
     if s.state.out == s.STATE_END:
       state_str = "END "
 
-    return "( {} | in_c {} | train_count {} | digit {} )".format( state_str, s.input_count, s.train_count_rd, s.merger_resp)
+    return "( {} | in_c {} | train_count {} | digit {} )".format( state_str, s.input_count, s.train_count_rd, s.merger_resp )
 #    return "( {} ({} {} {}))".format( state_str, s.regf_rdaddr[0], s.regf_rdaddr[1], s.regf_rdaddr[2] )
 #    return "( {}|{}|{}|({} {} {} {} {} {} {} {} {} {})|{}|{}|{} )".format( state_str, s.input_count, s.train_count_rd,
 #                                   s.regf_data[0], 
