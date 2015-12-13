@@ -11,12 +11,12 @@ import math
 
 DATA_BITS  = 49
 DIGIT      = 10
-TRAIN_DATA = 1800
 
 class digitrecPRTL( Model ):
 
-  def __init__( s, mapper_num = 30, reducer_num = 10, k = 3, nbits = 6 ):
+  def __init__( s, mapper_num = 30, reducer_num = 10, k = 3, nbits = 6, train_size = 600 ):
 
+    TRAIN_DATA = train_size
     sum_nbits = int( math.ceil( math.log( (2**nbits-1)*k, 2 ) ) )
 
     # Interface
@@ -32,7 +32,7 @@ class digitrecPRTL( Model ):
     s.map          = MapperPRTL  [mapper_num]  ()
     s.red          = ReducerPRTL [reducer_num] ( mapper_num/reducer_num, nbits, k, 50 )
     s.mer          = MergerPRTL                ( reducer_num, sum_nbits )
-    s.sche         = SchedulerPRTL             (mapper_num = mapper_num, reducer_num = reducer_num)
+    s.sche         = SchedulerPRTL             (mapper_num = mapper_num, reducer_num = reducer_num, train_size = TRAIN_DATA)
 
     # Assign Register File to Mapper
 
@@ -99,10 +99,12 @@ class digitrecPRTL( Model ):
     mapper = ""
 #    for i in xrange(mapper_num):
 #      mapper = mapper + s.map[i].line_trace() + " > "
+    mapper = mapper + s.map[0].line_trace()
 
     reducer = ""
 #    for i in xrange(reducer_num):
 #      reducer = reducer + s.red[i].line_trace() + " > "
+    reducer = reducer + s.red[0].line_trace()
 
     return s.sche.line_trace()       + " > " + \
            mapper                    + " > " + \

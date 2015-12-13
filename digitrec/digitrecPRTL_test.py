@@ -15,6 +15,7 @@ from pclib.ifcs      import MemMsg, MemReqMsg, MemRespMsg
 from digitrecPRTL    import digitrecPRTL
 from digitrecMsg     import digitrecReqMsg, digitrecRespMsg
 
+TEST_SIZE = 30
 
 #-------------------------------------------------------------------------
 # TestHarness
@@ -37,7 +38,7 @@ class TestHarness (Model):
 
     # Translation
     if test_verilog:
-      s.di = TranslationTool( s.wordcount )
+      s.di = TranslationTool( s.di )
 
     # Connect
     s.connect( s.src.out,           s.di.direq )
@@ -104,9 +105,9 @@ with open('data/testing_set.dat', 'r') as f:
 
 small_test_data = []
 small_result_data = []
-for i in xrange(180):
-  small_test_data.append(int(data[i][0],16))
-  small_result_data.append(int(data[i][1]))
+for i in xrange(TEST_SIZE):
+  small_test_data.append(int(data[i * (180/TEST_SIZE)][0],16))
+  small_result_data.append(int(data[i * (180/TEST_SIZE)][1]))
 
 #-------------------------------------------------------------------------
 # Test Case Table
@@ -157,4 +158,4 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
 
 @pytest.mark.parametrize( **test_case_table )
 def test( test_params, dump_vcd ):
-  run_test( digitrecPRTL(mapper_num = 30, reducer_num = 10), test_params, dump_vcd )
+  run_test( digitrecPRTL(mapper_num = 60, reducer_num = 10, train_size = 60), test_params, dump_vcd, test_verilog=False )

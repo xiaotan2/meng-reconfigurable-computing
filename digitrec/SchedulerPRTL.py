@@ -12,26 +12,28 @@ TYPE_WRITE = 1
 DATA_BITS  = 49
 DIGIT      = 10
 DIGIT_LOG  = int(math.ceil(math.log(DIGIT, 2)))
-TRAIN_DATA = 1800
-TRAIN_LOG  = int(math.ceil(math.log(TRAIN_DATA, 2)))
 TEST_DATA  = 180
 TEST_LOG   = int(math.ceil(math.log(TEST_DATA, 2)))
 
-# import training data and store them into array
-training_data = []
-for i in xrange(DIGIT):
-  count = 0
-  filename = 'data/training_set_' + str(i) + '.dat'
-  with open(filename, 'r') as f:
-    for L in f:
-      if(count > TRAIN_DATA - 1):
-        break;
-      training_data.append(int(L.replace(',\n',''), 16))
-      count = count + 1
-
 class SchedulerPRTL( Model ):
 
-  def __init__( s, mapper_num = 10, reducer_num = 1):
+  def __init__( s, mapper_num = 10, reducer_num = 1, train_size = 600):
+
+
+    TRAIN_DATA = train_size
+    TRAIN_LOG  = int(math.ceil(math.log(TRAIN_DATA, 2)))
+
+    # import training data and store them into array
+    training_data = []
+    for i in xrange(DIGIT):
+      count = 0
+      filename = 'data/training_set_' + str(i) + '.dat'
+      with open(filename, 'r') as f:
+        for L in f:
+          if(count > TRAIN_DATA - 1):
+            break;
+          training_data.append(int(L.replace(',\n',''), 16))
+          count = count + 1
 
     # Top Level Interface
     s.in_                 = InValRdyBundle  ( digitrecReqMsg() )
@@ -299,16 +301,17 @@ class SchedulerPRTL( Model ):
     if s.state.out == s.STATE_END:
       state_str = "END "
 
+    return "( {} | in_c {} | train_count {} | digit {} )".format( state_str, s.input_count, s.train_count_rd, s.merger_resp)
 #    return "( {} ({} {} {}))".format( state_str, s.regf_rdaddr[0], s.regf_rdaddr[1], s.regf_rdaddr[2] )
-    return "( {}|{}|{}|({} {} {} {} {} {} {} {} {} {})|{}|{}|{} )".format( state_str, s.input_count, s.train_count_rd,
-                                   s.regf_data[0], 
-                                   s.regf_data[1], 
-                                   s.regf_data[2], 
-                                   s.regf_data[3], 
-                                   s.regf_data[4], 
-                                   s.regf_data[5], 
-                                   s.regf_data[6], 
-                                   s.regf_data[7], 
-                                   s.regf_data[8], 
-                                   s.regf_data[9], 
-                                   s.regf_addr[0], s.train_count_wr, s.merger_resp )
+#    return "( {}|{}|{}|({} {} {} {} {} {} {} {} {} {})|{}|{}|{} )".format( state_str, s.input_count, s.train_count_rd,
+#                                   s.regf_data[0], 
+#                                   s.regf_data[1], 
+#                                   s.regf_data[2], 
+#                                   s.regf_data[3], 
+#                                   s.regf_data[4], 
+#                                   s.regf_data[5], 
+#                                   s.regf_data[6], 
+#                                   s.regf_data[7], 
+#                                   s.regf_data[8], 
+#                                   s.regf_data[9], 
+#                                   s.regf_addr[0], s.train_count_wr, s.merger_resp )

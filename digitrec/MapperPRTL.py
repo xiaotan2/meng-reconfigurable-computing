@@ -33,4 +33,4 @@ class MapperPRTL( Model ):
  
 
   def line_trace( s ):
-    return "{} {} () {}".format( s.in0, s.in1, s.out )
+    return "train({}) test({}) => dist({})".format( s.in0, s.in1, s.out )
