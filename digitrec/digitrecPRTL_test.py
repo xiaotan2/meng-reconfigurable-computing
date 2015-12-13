@@ -114,8 +114,8 @@ with open('data/testing_set.dat', 'r') as f:
 small_test_data = []
 small_result_data = []
 for i in xrange(TEST_SIZE):
-  small_test_data.append(int(data[i * (180/TEST_SIZE)+4][0],16))
-  small_result_data.append(int(data[i * (180/TEST_SIZE)+4][1]))
+  small_test_data.append(int(data[i * (180/TEST_SIZE)][0],16))
+  small_result_data.append(int(data[i * (180/TEST_SIZE)][1]))
 
 #-------------------------------------------------------------------------
 # Test Case Table
