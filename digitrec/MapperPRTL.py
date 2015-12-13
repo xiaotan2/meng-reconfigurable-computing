@@ -5,7 +5,6 @@
 from pymtl         import *
 from pclib.ifcs    import InValRdyBundle, OutValRdyBundle
 from DistancePRTL  import Adder, Xor, AdderTree
-from MapperMsg     import MapperReqMsg, MapperRespMsg
 
 DATA_NBITS     = 49
 DIGIT_NBITS    = 4

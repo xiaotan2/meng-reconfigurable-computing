@@ -19,9 +19,9 @@ from digitrecMsg     import digitrecReqMsg, digitrecRespMsg
 # Parameters. User can modify parameters here
 #-------------------------------------------------------------------------
 
-TEST_SIZE   = 30
-TRAIN_SIZE  = 600
-MAPPER_NUM  = 60
+TEST_SIZE   = 180
+TRAIN_SIZE  = 1800
+MAPPER_NUM  = 30
 REDUCER_NUM = 10 
 k           = 3
 
@@ -122,7 +122,6 @@ for i in xrange(TEST_SIZE):
 #-------------------------------------------------------------------------
 test_case_table = mk_test_case_table([
   (                  "data            result       stall  latency  src_delay  sink_delay" ),
-  [ "basic_0x0x0",   test_data,       1,           0,     0,       0,         0         ],
   [ "small_0x0x0",   small_test_data, 1,           0,     0,       0,         0         ],
 ])
 
