@@ -15,7 +15,15 @@ from pclib.ifcs      import MemMsg, MemReqMsg, MemRespMsg
 from digitrecPRTL    import digitrecPRTL
 from digitrecMsg     import digitrecReqMsg, digitrecRespMsg
 
-TEST_SIZE = 30
+#-------------------------------------------------------------------------
+# Parameters. User can modify parameters here
+#-------------------------------------------------------------------------
+
+TEST_SIZE   = 30
+TRAIN_SIZE  = 600
+MAPPER_NUM  = 60
+REDUCER_NUM = 10 
+k           = 3
 
 #-------------------------------------------------------------------------
 # TestHarness
@@ -50,7 +58,7 @@ class TestHarness (Model):
     return s.src.done and s.sink.done
   
   def line_trace(s):
-    return s.di.line_trace(mapper_num = 30, reducer_num=10)
+    return s.di.line_trace(mapper_num = MAPPER_NUM, reducer_num = REDUCER_NUM)
 #s.src.line_trace()       + " > " + \
 #           s.di.line_trace(mapper_num=30, reducer_num=10) + " > " + \
 #           s.sink.line_trace()    
@@ -106,8 +114,8 @@ with open('data/testing_set.dat', 'r') as f:
 small_test_data = []
 small_result_data = []
 for i in xrange(TEST_SIZE):
-  small_test_data.append(int(data[i * (180/TEST_SIZE)][0],16))
-  small_result_data.append(int(data[i * (180/TEST_SIZE)][1]))
+  small_test_data.append(int(data[i * (180/TEST_SIZE)+4][0],16))
+  small_result_data.append(int(data[i * (180/TEST_SIZE)+4][1]))
 
 #-------------------------------------------------------------------------
 # Test Case Table
@@ -158,4 +166,4 @@ def run_test( digitrec, test_params, dump_vcd, test_verilog=False ):
 
 @pytest.mark.parametrize( **test_case_table )
 def test( test_params, dump_vcd ):
-  run_test( digitrecPRTL(mapper_num = 60, reducer_num = 10, train_size = 60), test_params, dump_vcd, test_verilog=False )
+  run_test( digitrecPRTL(mapper_num = MAPPER_NUM, reducer_num = REDUCER_NUM, train_size = TRAIN_SIZE, k = k), test_params, dump_vcd, test_verilog=False )
