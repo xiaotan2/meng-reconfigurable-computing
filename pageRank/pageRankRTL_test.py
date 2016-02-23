@@ -15,6 +15,7 @@ from pclib.ifcs      import MemMsg, MemReqMsg, MemRespMsg
 from pageRankRTL     import pageRankRTL
 from pageRankMsg     import pageRankReqMsg, pageRankRespMsg
 
+from numpy           import dot
 #-------------------------------------------------------------------------
 # Parameters. User can modify parameters here
 #-------------------------------------------------------------------------
@@ -70,17 +71,17 @@ class TestHarness (Model):
 #-------------------------------------------------------------------------
 
 def req( type, addr, data ):
-  msg      = digitrecReqMsg()
-  if type == 'rd': msg.type_ = digitrecReqMsg.TYPE_READ
-  if type == 'wr': msg.type_ = digitrecReqMsg.TYPE_WRITE
+  msg      = pageRankReqMsg()
+  if type == 'rd': msg.type_ = pageRankReqMsg.TYPE_READ
+  if type == 'wr': msg.type_ = pageRankReqMsg.TYPE_WRITE
   msg.addr = addr
   msg.data = data
   return msg
 
 def resp( type, data ):
-  msg      = digitrecRespMsg()
-  if type == 'rd': msg.type_ = digitrecReqMsg.TYPE_READ
-  if type == 'wr': msg.type_ = digitrecReqMsg.TYPE_WRITE
+  msg      = pageRankRespMsg()
+  if type == 'rd': msg.type_ = pageRankReqMsg.TYPE_READ
+  if type == 'wr': msg.type_ = pageRankReqMsg.TYPE_WRITE
   msg.data = data
   return msg
   
@@ -100,30 +101,44 @@ def gen_protocol_msgs( size, result ):
 #-------------------------------------------------------------------------
 # Test Case: basic
 #-------------------------------------------------------------------------
+# convert n^2 vector into nxn matrix
+def vectorToMatrix(vector, length):
+  matrix = []
+  for i in xrange(length):
+    matrix.append([])
+  for i in xrange(len(vector)):
+    matrix[i/length].append(vector[i])
+  return matrix
 
-test_data = []
-result_data = []
-data      = []
-with open('data/testing_set.dat', 'r') as f:
-  for L in f:
-    L = L.replace('\n','')
-    data.append(L.split(','))
-  for row in data:
-    test_data.append(int(row[0], 16))
-    result_data.append(int(row[1]))
+# convert nxn matrix into n^2 vector
+def matrixToVector(matrix, length):
+  vector = []
+  for i in xrange(len(matrix)):
+    for j in xrange(len(matrix[i])):
+      vector.append(matrix[i][j])
+  return vector
 
-small_test_data = []
-small_result_data = []
-for i in xrange(TEST_SIZE):
-  small_test_data.append(int(data[i * (180/TEST_SIZE)][0],16))
-  small_result_data.append(int(data[i * (180/TEST_SIZE)][1]))
+# vector R
+vectorR = []
+
+# test data 8x8 matrix
+test_8data = []
+result_8data = []
+for i in xrange(8):
+  for j in xrange(8):
+    test_8data.append(i)
+
+for i in xrange(8):
+  vectorR.append(i)
+
+result_8data = dot(vectorR, vectorToMatrix(test_8data, 8))
 
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
 test_case_table = mk_test_case_table([
   (                  "data            result       stall  latency  src_delay  sink_delay" ),
-  [ "small_0x0x0",   small_test_data, 1,           0,     0,       0,         0         ],
+  [ "test8_0x0x0",   test_8data,        1,           0,     0,       0,         0         ],
 ])
 
 #-------------------------------------------------------------------------
@@ -140,7 +155,7 @@ def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
   pageRank_reqs          = pageRank_protocol_msgs[::2]
   pageRank_resps         = pageRank_protocol_msgs[1::2]
 
-  th = TestHarness( pageRank, digitrec_reqs, digitrec_resps, 
+  th = TestHarness( pageRank, pageRank_reqs, pageRank_resps, 
                     test_params.stall, test_params.latency,
                     test_params.src_delay, test_params.sink_delay,
                     dump_vcd, test_verilog )
@@ -149,20 +164,22 @@ def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
   run_sim( th, dump_vcd, max_cycles=MAX_CYCLES )
 
   # Retrieve result from test memory
-  result_bytes = struct.pack("<{}Q".format(len(small_result_data)),*small_result_data )
+  result_bytes = struct.pack("<{}Q".format(len(test_8data)),*result_8data )
   result_bytes = th.mem.read_mem( 0x2000, len(result_bytes) )
-  result_list  = list(struct.unpack("<{}Q".format(len(small_result_data)), buffer(result_bytes)))
+  result_list  = list(struct.unpack("<{}Q".format(len(result_8data)), buffer(result_bytes)))
 
-  for i in xrange(len(result_list)):
-    print(str(i) + "th data digit: " + str(result_list[i]) + " it shoud be " + str(small_result_data[i]))
+  if len(result_list) != len(result_8data):
+    print("FAIL, actual result has size " + str(len(result_list)) + " but should have " + str(len(result_8data)))
+    return
 
-  # Calculate error rate and print it
-  accuracy = 0
+  noError = True
   for i in xrange(len(result_list)):
-    if result_list[i] == small_result_data[i]:
-      accuracy = accuracy + 1
-  error_rate = float((len(result_list)-accuracy))/len(result_list)
-  print("Overall Error Rate is: " + str(error_rate*100) + "%")
+    if result_list[i] != result_8data[i]:
+      print("FAIL, actual result " + str(result_list[i]) + " but should have " + str(result_8data[i]))
+      noError = False
+
+  if noError:
+    print("PASS, Yay!")
 
 @pytest.mark.parametrize( **test_case_table )
 def test( test_params, dump_vcd ):
