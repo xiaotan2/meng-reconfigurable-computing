@@ -4,32 +4,37 @@
 
 module SchedulerVRTL
 #(
-  parameter nbits = 32
+  parameter nbits  = 32
+  parameter nports = 2
 )
 (
-  // input signals from test source
+  /* Interface with TestSource and TestSink */
 
   input              in_req_val,
   input              in_resp_rdy,
   input              in_type,
-  input              in_addr,
-  input              in_data,
-
-  // output signals to test sink
+  input [31:0]       in_addr,
+  input [31:0]       in_data,
 
   output             out_req_rdy,
   output             out_resp_val,
+  output             out_type,
+  output             out_addr,
+  output [31:0]      out_data,
 
-  input  [nbits-1:0] reg_r1_in0,
-  input  [nbits-1:0] reg_r1_in1,
-  input  [nbits-1:0] reg_r1_in2,
-  input  [nbits-1:0] reg_r1_in3,
-  input  [nbits-1:0] reg_r1_in4,
-  input  [nbits-1:0] reg_r1_in5,
-  input  [nbits-1:0] reg_r1_in6,
-  input  [nbits-1:0] reg_r1_in7,
-  
-  output [nbits-1:0] out
+  /* Interface with Test Memory */
+
+  input              mem_resp_val   [0:nports-1],
+  input              mem_req_rdy    [0:nports-1],
+  input              mem_resp_type  [0:nports-1], 
+  input [31:0]       mem_resp_addr  [0:nports-1],
+  input [nbits-1:0]  mem_resp_data  [0:nports-1],
+
+  output             mem_req_val    [0:nports-1],
+  output             mem_resp_rdy   [0:nports-1],
+  output             mem_req_type   [0:nports-1],
+  output [31:0]      mem_req_addr   [0:nports-1],
+  output [nbits-1:0] mem_req_data   [0:nports-1]
 );
 
 
@@ -47,9 +52,14 @@ end
   // State Definitions
   //----------------------------------------------------------------------
 
-  localparam STATE_IDLE   = 2'd0;
-  localparam STATE_SOURCE = 2'd1;
-  localparam STATE_INIT   = 2'd2;
+  localparam STATE_IDLE   = 3'd0;
+  localparam STATE_SOURCE = 3'd1;
+  localparam STATE_INIT   = 3'd2;
+  localparam STATE_START  = 3'd3;
+  localparam STATE_RUN    = 3'd4;
+  localparam STATE_WAIT   = 3'd5;
+  localparam STATE_END    = 3'd6;
+  localparam STATE_WRITE  = 3'd7;
 
   //----------------------------------------------------------------------
   // State
@@ -75,8 +85,8 @@ end
   logic resp_go;
   logic start;
 
-  assign req_go       = in_req_val  && in_req_rdy;
-  assign resp_go      = out_resp_val && out_resp_rdy;
+  assign req_go       = in_req_val  && out_req_rdy;
+  assign resp_go      = out_resp_val && in_resp_rdy;
   assign start        = 0;
 
   always_comb begin
@@ -87,7 +97,12 @@ end
 
       STATE_IDLE:   if ( req_go    )    state_next = STATE_SOURCE;
       STATE_SOURCE: if ( start     )    state_next = STATE_INIT;
-      STATE_INIT:   if ( resp_go   )    state_next = STATE_IDLE;
+      STATE_INIT:   if ( resp_go   )    state_next = STATE_START;
+      STATE_START:  if ( resp_go   )    state_next = STATE_RUN;
+      STATE_RUN:    if ( resp_go   )    state_next = STATE_WAIT;
+      STATE_WAIT:   if ( resp_go   )    state_next = STATE_END;   else if () state_next = STATE_RUN;
+      STATE_END:    if ( resp_go   )    state_next = STATE_WRITE;
+      STATE_WRITE:  if ( resp_go   )    state_next = STATE_IDLE;
       default:    state_next = 'x;
 
     endcase
@@ -122,6 +137,11 @@ end
       STATE_IDLE:                cs( 1,  0,   );
       STATE_SOURCE:              cs( 0,  0,   );
       STATE_INIT:                cs( 0,  1,   );
+      STATE_START:               cs( 0,  1,   );
+      STATE_RUN:                 cs( 0,  1,   );
+      STATE_WAIT:                cs( 0,  1,   );
+      STATE_END:                 cs( 0,  1,   );
+      STATE_WRITE:               cs( 0,  1,   );
       default                    cs('x, 'x,   );
 
     endcase
