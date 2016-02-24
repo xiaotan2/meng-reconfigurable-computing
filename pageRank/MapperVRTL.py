@@ -22,10 +22,10 @@ class MapperVRTL( VerilogModel ):
     # Verilog ports
 
     s.set_ports({
-      'in0'         : s.in0,
-      'in1'         : s.in1,
-      'in2'         : s.in2,
-      'in3'         : s.in3,
+      'r_0'         : s.in0,
+      'g_0'         : s.in1,
+      'r_1'         : s.in2,
+      'g_1'         : s.in3,
       'out'         : s.out
     })
 
