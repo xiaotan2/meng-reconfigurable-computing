@@ -8,7 +8,7 @@
 `ifndef VC_MEM_MSGS_V
 `define VC_MEM_MSGS_V
 
-`include "vc/trace.v"
+`include "trace.v"
 
 //========================================================================
 // Memory Request Message
