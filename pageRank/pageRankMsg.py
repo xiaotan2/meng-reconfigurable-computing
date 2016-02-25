@@ -11,11 +11,11 @@ class pageRankReqMsg( BitStructDefinition ):
     s.addr  = BitField ( 32 )
     s.type_ = BitField ( 1 )
 
-  def mk_msg( s, data, addr, type ):
+  def mk_msg( s, data, addr, type_ ):
     msg       = s()
     msg.data  = data
     msg.addr  = addr
-    msg.type_ = type
+    msg.type_ = type_
     return msg
 
   def __str__( s ):
@@ -30,10 +30,10 @@ class pageRankRespMsg( BitStructDefinition ):
     s.data  = BitField ( 32 )
     s.type_ = BitField ( 1 )
 
-  def mk_msg( s, data, type ):
+  def mk_msg( s, data, type_ ):
     msg       = s()
     msg.data  = data
-    msg.type_ = type
+    msg.type_ = type_
     return msg
 
   def __str__( s ):
