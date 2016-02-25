@@ -53,16 +53,16 @@ class TestHarness (Model):
     # Connect
     s.connect( s.src.out,              s.di.direq        )
     s.connect( s.di.diresp,            s.sink.in_        )
-    s.connect( s.di.memreq0,           s.mem.reqs[0]     )
-    s.connect( s.di.memresp0,          s.mem.resps[0]    )
-    s.connect( s.di.memreq1,           s.mem.reqs[1]     )
-    s.connect( s.di.memresp1,          s.mem.resps[1]    )
+    s.connect( s.di.memreq[0],           s.mem.reqs[0]     )
+    s.connect( s.di.memresp[0],          s.mem.resps[0]    )
+    s.connect( s.di.memreq[1],           s.mem.reqs[1]     )
+    s.connect( s.di.memresp[1],          s.mem.resps[1]    )
 
   def done(s):
     return s.src.done and s.sink.done
   
   def line_trace(s):
-    return s.di.line_trace()
+    return s.src.line_trace() + " > " + s.di.line_trace() + " > " + s.sink.line_trace()
 #s.src.line_trace()       + " > " + \
 #           s.di.line_trace(mapper_num=30, reducer_num=10) + " > " + \
 #           s.sink.line_trace()    
@@ -163,7 +163,7 @@ def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
                     dump_vcd, test_verilog )
 
   th.mem.write_mem( 0x1000, data_bytes )
-  run_sim( th, dump_vcd, max_cycles=MAX_CYCLES )
+  run_sim( th, dump_vcd, max_cycles=20 )
 
   # Retrieve result from test memory
   result_bytes = struct.pack("<{}Q".format(len(test_8data)),*result_8data )
