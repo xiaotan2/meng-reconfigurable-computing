@@ -5,10 +5,14 @@
 `include "mem-msgs.v"
 `include "pageRank-msgs.v"
 
+`include "trace.v"
+
+
 module SchedulerVRTL
 #(
   parameter nbits  = 32,
-  parameter nports = 2
+  parameter nports = 2,
+  parameter n      = 8
 )
 (
   input  logic             clk,
@@ -157,20 +161,66 @@ module SchedulerVRTL
   logic [nbits-1:0] reg_r0_d [0:7];
   logic [nbits-1:0] reg_r1_d [0:7];
 
+  // wires, wr enable  
+  logic             reg_r0_en [0:7];
+  logic             reg_r1_en [0:7];
+
   integer i;
 
   always_ff @( posedge clk ) begin
     if ( reset ) begin
-      for ( i = 0; i < 8; i = i + 1 ) begin
+      for ( i = 0; i < n; i = i + 1 ) begin
         reg_r0[i] <= 32'b0;
         reg_r1[i] <= 32'b0;
       end
     end
     else begin
-      for ( i = 0; i < 8; i = i + 1 ) begin
-        reg_r0[i] <= reg_r0_d[i];
-        reg_r1[i] <= reg_r1_d[i];
+      for ( i = 0; i < n; i = i + 1 ) begin
+        if ( reg_r0_en[i] == 1'b1 ) 
+          reg_r0[i] <= reg_r0_d[i];
+        else 
+          reg_r0[i] <= reg_r0[i];
+        if ( reg_r1_en[i] == 1'b1 ) 
+          reg_r1[i] <= reg_r1_d[i];
+        else 
+          reg_r1[i] <= reg_r1[i];
       end
+    end
+  end
+
+  //----------------------------------------------------------------------
+  // Counters
+  //
+  // counter_R iterate R
+  // counter_G iterate G's column
+  // counter_W
+  // counter_C
+  //----------------------------------------------------------------------
+
+  logic [2:0]  counter_R;
+  logic [2:0]  counter_R_d;
+
+  logic [2:0]  counter_G;
+  logic [2:0]  counter_G_d;
+
+  logic [2:0]  counter_W;
+  logic [2:0]  counter_W_d;
+
+  logic [2:0]  counter_C;
+  logic [2:0]  counter_C_d;
+
+  always_ff @( posedge clk ) begin
+    if ( reset ) begin
+      counter_R <= 3'b0;
+      counter_G <= 3'b0;
+      counter_W <= 3'b0;
+      counter_C <= 3'b0;
+    end
+    else begin
+      counter_R <= counter_R_d;
+      counter_G <= counter_G_d;
+      counter_W <= counter_W_d;
+      counter_C <= counter_C_d;
     end
   end
 
@@ -220,9 +270,9 @@ module SchedulerVRTL
 
     case ( state_reg )
 
-      STATE_IDLE:   if ( req_go    )    state_next = STATE_SOURCE;
-      STATE_SOURCE: if ( start     )    state_next = STATE_IDLE; //  state_next = STATE_INIT;
-//      STATE_INIT:   if ( resp_go   )    state_next = STATE_START;
+      STATE_IDLE:   if ( req_go    )      state_next = STATE_SOURCE;
+      STATE_SOURCE: if ( start     )      state_next = STATE_INIT; 
+      STATE_INIT:   if ( counter_R == 3'd4  )  state_next = STATE_IDLE;
 //      STATE_START:  if ( resp_go   )    state_next = STATE_RUN;
 //      STATE_RUN:    if ( resp_go   )    state_next = STATE_WAIT;
 //      STATE_WAIT:   if ( resp_go   )    state_next = STATE_END;  
@@ -259,32 +309,44 @@ always_ff @ (posedge clk) begin
   else if ( EN_size   )
     size   <= in_data;    
 end
-// counters
-
-logic counter_R;
-logic counter_G;
-logic counter_global;
-
 
 always_comb begin
-    start = 1'b0;
-    in_req_rdy = 1'b0;
+
+    // default values
+
+    in_req_rdy   = 1'b0;
     out_resp_val = 1'b0;
+
+    start        = 1'b0;
+
+    counter_R_d  = counter_R;
 
     // IDLE STATE
     if (state_reg == STATE_IDLE ) begin
-      start = 1'b0;
-      in_req_rdy = 1'b1;
+      in_req_rdy   = 1'b1;
+      out_resp_val = 1'b0;
+      start        = 1'b0;
     end
 
     // SOURCE STATE
     if(state_reg == STATE_SOURCE) begin
-        in_req_rdy = 1'd1;
         if(in_req_val == 1'b1 && out_resp_rdy == 1'b1) begin
             // Write tpye
             if(in_type == 1'b1) begin
                 if(in_addr == 32'b0) begin
+                    // transit to next state
                     start = 1'b1;
+
+                    // start R counter
+                    counter_R_d = 3'b0;
+
+                    // Send the first memory req
+                    mem_req_val [0] = 1'b1;
+                    mem_req_addr[0] = base_R + 8*counter_R;
+                    mem_req_type[0] = 3'b0;
+                    mem_req_val [1] = 1'b1;
+                    mem_req_addr[1] = base_R + 8*counter_R+4;
+                    mem_req_type[1] = 3'b0;
                 end
                 else if(in_addr == 32'd1) begin
                     EN_base_G = 1'b1;
@@ -295,31 +357,43 @@ always_comb begin
                 else if(in_addr == 32'd3) begin
                     EN_size = 1'b1;
                 end
+                in_req_rdy = 1'b1;
+                out_resp_val = 1'b1;
                 out_type = 1'b1;
                 out_data = 32'b0;
-                out_resp_val = 1'b1;
      
             end
             // Read type
             else begin
+                in_req_rdy = 1'b1;
+                out_resp_val = 1'b1;
                 out_type = 1'b0;
                 out_data = 32'b1;
-                out_resp_val = 1'b1;
             end
         end
     end
 
-//    // INIT STATE
-//    if(state_reg == STATE_SOURCE) begin
-//        if(mem_req_rdy[0] == 1'b1 && mem_req_rdy[1] == 1'b1) begin
-//            mem_req_val[0] = 0'b1;
-//            mem_req_val[1] = 0'b1;
-//            mem_req_addr[0] = base_R + 8*counter_R;
-//            mem_req_addr[1] = base_R + 8*(counter_R)+4;
-//            mem_req_type[0] = 0'b0;  // Read
-//            mem_req_type[1] = 0'b0;
-//        end
-//    end
+    // INIT STATE
+    if(state_reg == STATE_SOURCE) begin
+
+        // enable R counter
+        counter_R_d = counter_R + 3'b1;
+
+        // Send Memory Request
+        mem_req_val [0] = 1'b1;
+        mem_req_addr[0] = base_R + 8*counter_R;
+        mem_req_type[0] = 3'b0;
+        mem_req_val [1] = 1'b1;
+        mem_req_addr[1] = base_R + 8*counter_R+4;
+        mem_req_type[1] = 3'b0;
+        // Receive Memory Response
+        if(mem_resp_val[0] == 1'b1) begin
+            reg_r0_d[counter_R*2] = mem_resp_data[0];
+            mem_resp_rdy[0]      = 1'b1;
+            reg_r0_d[counter_R*2+1] = mem_resp_data[0];
+            mem_resp_rdy[1]      = 1'b1;
+        end
+    end
 //
 //    // START STATE
 //    if(state_reg == STATE_START) begin
@@ -334,4 +408,48 @@ always_comb begin
 //    end
 //
 end
+
+  //-----------------------------------------------------------------------
+  // Line Tracing
+  //-----------------------------------------------------------------------
+
+  `ifndef SYNTHESIS
+
+  logic [`VC_TRACE_NBITS-1:0] str;
+
+  `VC_TRACE_BEGIN
+  begin
+
+    $sformat( str, "%x", in_req_msg );
+    vc_trace.append_val_rdy_str( trace_str, in_req_val, in_req_rdy, str );
+
+    vc_trace.append_str( trace_str, "(" );
+
+    case ( state_reg )
+      STATE_IDLE:
+        vc_trace.append_str( trace_str, "I " );
+
+      STATE_SOURCE:
+        vc_trace.append_str( trace_str, "S" );
+
+      STATE_INIT:
+        vc_trace.append_str( trace_str, "INI" );
+
+      default:
+        vc_trace.append_str( trace_str, "? " );
+
+    endcase
+
+    vc_trace.append_str( trace_str, ")" );
+
+    $sformat( str, "%x", out_resp_msg );
+    vc_trace.append_val_rdy_str( trace_str, out_resp_val, out_resp_rdy, str );
+
+  end
+  `VC_TRACE_END
+
+  `endif /* SYNTHESIS */
+
+
+
 endmodule
