@@ -301,8 +301,11 @@ always_comb begin
      
             end
             // Read type
-//            if(in_type == ) begin
-//            end
+            else begin
+                out_type = 1'b0;
+                out_data = 32'b1;
+                out_resp_val = 1'b1;
+            end
         end
     end
 
