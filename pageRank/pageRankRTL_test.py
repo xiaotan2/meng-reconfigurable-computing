@@ -92,7 +92,8 @@ def resp( type, data ):
 def gen_protocol_msgs( size, result ):
   return [
     req( 'wr', 1, 0x1000 ), resp( 'wr', 0      ),
-    req( 'wr', 2, size   ), resp( 'wr', 0      ),
+    req( 'wr', 2, 0x2000 ), resp( 'wr', 0      ),
+    req( 'wr', 3, size   ), resp( 'wr', 0      ),
     req( 'wr', 0, 0      ), resp( 'wr', 0      ),
     req( 'rd', 0, 0      ), resp( 'rd', result ),
   ]
