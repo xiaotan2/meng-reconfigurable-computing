@@ -267,7 +267,6 @@ logic counter_global;
 
 
 always_comb begin
-    start = 1'b0;
     in_req_rdy = 1'b0;
     out_resp_val = 1'b0;
 
@@ -279,11 +278,17 @@ always_comb begin
 
     // SOURCE STATE
     if(state_reg == STATE_SOURCE) begin
-        in_req_rdy = 1'd1;
         if(in_req_val == 1'b1 && out_resp_rdy == 1'b1) begin
             // Write tpye
             if(in_type == 1'b1) begin
                 if(in_addr == 32'b0) begin
+                    // Send the first memory req
+                    mem_req_val [0] = 1'b1;
+                    mem_req_addr[0] = base_R + 8*counterR;
+                    mem_req_type[0] = 1'b0;
+                    mem_req_val [1] = 1'b1;
+                    mem_req_addr[1] = base_R + 8*counterR+4;
+                    mem_req_type[1] = 1'b0;
                     start = 1'b1;
                 end
                 else if(in_addr == 32'd1) begin
@@ -295,6 +300,7 @@ always_comb begin
                 else if(in_addr == 32'd3) begin
                     EN_size = 1'b1;
                 end
+                in_req_rdy = 1'b1;
                 out_type = 1'b1;
                 out_data = 32'b0;
                 out_resp_val = 1'b1;
@@ -302,6 +308,7 @@ always_comb begin
             end
             // Read type
             else begin
+                in_req_rdy = 1'b1;
                 out_type = 1'b0;
                 out_data = 32'b1;
                 out_resp_val = 1'b1;
@@ -309,17 +316,23 @@ always_comb begin
         end
     end
 
-//    // INIT STATE
-//    if(state_reg == STATE_SOURCE) begin
-//        if(mem_req_rdy[0] == 1'b1 && mem_req_rdy[1] == 1'b1) begin
-//            mem_req_val[0] = 0'b1;
-//            mem_req_val[1] = 0'b1;
-//            mem_req_addr[0] = base_R + 8*counter_R;
-//            mem_req_addr[1] = base_R + 8*(counter_R)+4;
-//            mem_req_type[0] = 0'b0;  // Read
-//            mem_req_type[1] = 0'b0;
-//        end
-//    end
+    // INIT STATE
+    if(state_reg == STATE_SOURCE) begin
+        // Send Memory Request
+        mem_req_val [0] = 1'b1;
+        mem_req_addr[0] = base_R + 8*counterR;
+        mem_req_type[0] = 1'b0;
+        mem_req_val [1] = 1'b1;
+        mem_req_addr[1] = base_R + 8*counterR+4;
+        mem_req_type[1] = 1'b0;
+        // Receive Memory Response
+        if(mem_resp_val[0] == 1'b1) begin
+            reg_r0_d[counterR*2] = mem_resp_data[0];
+            mem_resp_rdy[0]      = 1'b1;
+            reg_r0_d[counterR*2+1] = mem_resp_data[0];
+            mem_resp_rdy[1]      = 1'b1;
+        end
+    end
 //
 //    // START STATE
 //    if(state_reg == STATE_START) begin
