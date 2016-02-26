@@ -13,19 +13,19 @@ module SchedulerVRTL
   input  logic             clk,
   input  logic             reset,
 
-//  /* Interface with TestSource and TestSink */
-//
-//  input  logic             in_req_val,
-//  input  logic             in_resp_rdy,
-//  input  logic             in_type,
-//  input  logic [31:0]      in_addr,
-//  input  logic [nbits-1:0] in_data,
-//
-//  output logic             out_req_rdy,
-//  output logic             out_resp_val,
-//  output logic             out_type,
-//  output logic [nbits-1:0] out_data,
-//
+  /* Interface with TestSource and TestSink */
+
+  input  logic             in_req_val,
+  input  logic             in_resp_rdy,
+  input  logic             in_type,
+  input  logic [31:0]      in_addr,
+  input  logic [nbits-1:0] in_data,
+
+  output logic             out_req_rdy,
+  output logic             out_resp_val,
+  output logic             out_type,
+  output logic [nbits-1:0] out_data,
+
   /* Interface with Test Memory */
   
   // memory request port 0 
@@ -116,130 +116,164 @@ module SchedulerVRTL
     .data   (mem_resp_data[1])
   );
 
-//  //----------------------------------------------------------------------- 
-//  // Two set of registers to store R
-//  //----------------------------------------------------------------------- 
-//
-//  // registers
-//  logic [nbits-1:0] reg_r0 [0:7];
-//  logic [nbits-1:0] reg_r1 [0:7];
-// 
-//  // wires 
-//  logic [nbits-1:0] reg_r0_d [0:7];
-//  logic [nbits-1:0] reg_r0_d [0:7];
-//
-//  integer i;
-//
-//  always_ff @( posedge clk ) begin
-//    if ( reset ) begin
-//      reg_r0 <= `{default: 32'b0};
-//      reg_r1 <= `{default: 32'b0};
-//    else begin
-//      for ( i = 0; i < 8; i = i + 1 ) begin
-//        reg_r0[i] <= reg_r0_d[i];
-//        reg_r1[i] <= reg_r1_d[i];
-//      end
-//    end
-//  end
-//
-//  //----------------------------------------------------------------------
-//  // State Definitions
-//  //----------------------------------------------------------------------
-//
-//  localparam STATE_IDLE   = 3'd0;
-//  localparam STATE_SOURCE = 3'd1;
-//  localparam STATE_INIT   = 3'd2;
-//  localparam STATE_START  = 3'd3;
-//  localparam STATE_RUN    = 3'd4;
-//  localparam STATE_WAIT   = 3'd5;
-//  localparam STATE_END    = 3'd6;
-//  localparam STATE_WRITE  = 3'd7;
-//
-//  //----------------------------------------------------------------------
-//  // State
-//  //----------------------------------------------------------------------
-//
-//  logic [1:0] state_reg;
-//  logic [1:0] state_next;
-//
-//  always_ff @( posedge clk ) begin
-//    if ( reset ) begin
-//      state_reg <= STATE_IDLE;
-//    end
-//    else begin
-//      state_reg <= state_next;
-//    end
-//  end
-//
-//  //----------------------------------------------------------------------
-//  // State Transitions
-//  //----------------------------------------------------------------------
-//
-//  logic req_go;
-//  logic resp_go;
-//  logic start;
-//
-//  assign req_go       = in_req_val  && out_req_rdy;
-//  assign resp_go      = out_resp_val && in_resp_rdy;
-//  assign start        = 1'b1;
-//
-//  always_comb begin
-//
-//    state_next = state_reg;
-//
-//    case ( state_reg )
-//
-//      STATE_IDLE:   if ( req_go    )    state_next = STATE_SOURCE;
-//      STATE_SOURCE: if ( start     )    state_next = STATE_INIT;
-//      STATE_INIT:   if ( resp_go   )    state_next = STATE_START;
-//      STATE_START:  if ( resp_go   )    state_next = STATE_RUN;
-//      STATE_RUN:    if ( resp_go   )    state_next = STATE_WAIT;
-//      STATE_WAIT:   if ( resp_go   )    state_next = STATE_END;  
-//                    else                state_next = STATE_RUN;
-//      STATE_END:    if ( resp_go   )    state_next = STATE_WRITE;
-//      STATE_WRITE:  if ( resp_go   )    state_next = STATE_IDLE;
-//      default:    state_next = 'x;
-//
-//    endcase
-//
-//  end
-//
-//  //----------------------------------------------------------------------
-//  // State Outputs
-//  //----------------------------------------------------------------------
-//
-//  task cs
-//  (
-//    input logic       cs_out_req_rdy,
-//    input logic       cs_out_resp_val,
-//  );
-//  begin
-//    out_req_rdy    = cs_out_req_rdy;
-//    out_resp_val   = cs_out_resp_val;
-//  end
-//  endtask
-//
-//  // Set outputs using a control signal "table"
-//
-//  always_comb begin
-//
-//    cs( 0, 0 );
-//    case ( state_reg )
-//      //                             req resp 
-//      //                             rdy val  
-//      STATE_IDLE:                cs( 1,  0   );
-//      STATE_SOURCE:              cs( 0,  0   );
-//      STATE_INIT:                cs( 0,  1   );
-//      STATE_START:               cs( 0,  1   );
-//      STATE_RUN:                 cs( 0,  1   );
-//      STATE_WAIT:                cs( 0,  1   );
-//      STATE_END:                 cs( 0,  1   );
-//      STATE_WRITE:               cs( 0,  1   );
-//      default                    cs('x, 'x   );
-//
-//    endcase
-//
-//  end
+  //----------------------------------------------------------------------- 
+  // Two set of registers to store R
+  //----------------------------------------------------------------------- 
+
+  // registers
+  logic [nbits-1:0] reg_r0 [0:7];
+  logic [nbits-1:0] reg_r1 [0:7];
+ 
+  // wires 
+  logic [nbits-1:0] reg_r0_d [0:7];
+  logic [nbits-1:0] reg_r0_d [0:7];
+
+  integer i;
+
+  always_ff @( posedge clk ) begin
+    if ( reset ) begin
+      reg_r0 <= `{default: 32'b0};
+      reg_r1 <= `{default: 32'b0};
+    else begin
+      for ( i = 0; i < 8; i = i + 1 ) begin
+        reg_r0[i] <= reg_r0_d[i];
+        reg_r1[i] <= reg_r1_d[i];
+      end
+    end
+  end
+
+  //----------------------------------------------------------------------
+  // State Definitions
+  //----------------------------------------------------------------------
+
+  localparam STATE_IDLE   = 3'd0;
+  localparam STATE_SOURCE = 3'd1;
+  localparam STATE_INIT   = 3'd2;
+  localparam STATE_START  = 3'd3;
+  localparam STATE_RUN    = 3'd4;
+  localparam STATE_WAIT   = 3'd5;
+  localparam STATE_END    = 3'd6;
+  localparam STATE_WRITE  = 3'd7;
+
+  //----------------------------------------------------------------------
+  // State
+  //----------------------------------------------------------------------
+
+  logic [1:0] state_reg;
+  logic [1:0] state_next;
+
+  always_ff @( posedge clk ) begin
+    if ( reset ) begin
+      state_reg <= STATE_IDLE;
+    end
+    else begin
+      state_reg <= state_next;
+    end
+  end
+
+  //----------------------------------------------------------------------
+  // State Transitions
+  //----------------------------------------------------------------------
+
+  logic req_go;
+  logic resp_go;
+  logic start;
+
+  assign req_go       = in_req_val  && out_req_rdy;
+  assign resp_go      = out_resp_val && in_resp_rdy;
+  assign start        = 1'b1;
+
+  always_comb begin
+
+    state_next = state_reg;
+
+    case ( state_reg )
+
+      STATE_IDLE:   if ( req_go    )    state_next = STATE_SOURCE;
+      STATE_SOURCE: if ( start     )    state_next = STATE_INIT;
+      STATE_INIT:   if ( resp_go   )    state_next = STATE_START;
+      STATE_START:  if ( resp_go   )    state_next = STATE_RUN;
+      STATE_RUN:    if ( resp_go   )    state_next = STATE_WAIT;
+      STATE_WAIT:   if ( resp_go   )    state_next = STATE_END;  
+                    else                state_next = STATE_RUN;
+      STATE_END:    if ( resp_go   )    state_next = STATE_WRITE;
+      STATE_WRITE:  if ( resp_go   )    state_next = STATE_IDLE;
+      default:    state_next = 'x;
+
+    endcase
+
+  end
+
+logic EN_base_G;
+assign EN_base_G = 1'b0;
+logic EN_base_R;
+assign EN_base_R = 1'b0;
+logic EN_size;
+assign EN_size = 1'b0;
 
 
-endmodule
+always_ff @ (posedge clk) begin
+  if (EN_base_G)
+    Base_G <= 
+reg base_G;
+reg base_R;
+reg counter_R;
+reg counter_G;
+reg counter_global;
+
+
+always_comb begin
+    // IDLE STATE
+
+    // SOURCE STATE
+    if(state_reg == STATE_SOURCE) begin
+        if(in_req_val == 1'b1 && out_req_rdy == 1'b1) begin
+            // Write tpye
+            if(in_type == 1'b1) begin
+                if(in_addr == 32'b0) begin
+                    start = 1'b1;
+                end
+                else if(in_addr == 32'b1) begin
+                    EN_base_G = 1'b1;
+                end
+                else if(in_addr == 32'd2) begin
+                    EN_base_R = 1'b1;
+                end
+                else if(in_addr == 32'd3) begin
+                    EN_size = 1'b1;
+                end
+                out_type = 1'b1;
+                out_data = 32'b0;
+                out_resp_val = 1'b1;
+            end
+            // Read type
+            if(in_type == 1'b0) begin
+            end
+        end
+    end
+
+    // INIT STATE
+    if(state_reg == STATE_SOURCE) begin
+        if(mem_req_rdy[0] == 1'b1 && mem_req_rdy[1] == 1'b1) begin
+            mem_req_val[0] = 0'b1;
+            mem_req_val[1] = 0'b1;
+            mem_req_addr[0] = base_R + 8*counter_R;
+            mem_req_addr[1] = base_R + 8*(counter_R)+4;
+            mem_req_type[0] = 0'b0;  // Read
+            mem_req_type[1] = 0'b0;
+        end
+    end
+
+    // START STATE
+    if(state_reg == STATE_START) begin
+        if(mem_req_rdy[0] == 1'b1 && mem_req_rdy[1]) begin
+            mem_req_val[0] = 0'b1;
+            mem_req_val[1] = 0'b1;
+            mem_req_addr[0] = base_G + 8*counter_G;
+            mem_req_addr[1] = base_G + 8*(counter_G)+4;
+            mem_req_type[0] = 0'b0;  // Read
+            mem_req_type[1] = 0'b0;
+        end
+    end
+
+end
