@@ -188,6 +188,37 @@ module SchedulerVRTL
     end
   end
 
+  //----------------------------------------------------------------------- 
+  // Registers to store one column of G
+  //----------------------------------------------------------------------- 
+
+  // registers
+  logic [nbits-1:0] reg_g [0:7];
+ 
+  // wires 
+  logic [nbits-1:0] reg_g_d [0:7];
+
+  // wires, wr enable  
+  logic             reg_g_en [0:7];
+
+  integer i;
+
+  always_ff @( posedge clk ) begin
+    if ( reset ) begin
+      for ( i = 0; i < n; i = i + 1 ) begin
+        reg_g[i] <= 32'b0;
+      end
+    end
+    else begin
+      for ( i = 0; i < n; i = i + 1 ) begin
+        if ( reg_g_en[i] == 1'b1 ) 
+          reg_g[i] <= reg_g_d[i];
+        else 
+          reg_g[i] <= reg_g[i];
+      end
+    end
+  end
+
   //----------------------------------------------------------------------
   // Counters
   //
@@ -209,18 +240,23 @@ module SchedulerVRTL
   logic [2:0]  counter_C;
   logic [2:0]  counter_C_d;
 
+  logic [2:0]  offset;
+  logic [2:0]  offset_d;
+
   always_ff @( posedge clk ) begin
     if ( reset ) begin
       counter_R <= 3'b0;
       counter_G <= 3'b0;
       counter_W <= 3'b0;
       counter_C <= 3'b0;
+      offset    <= 3'b0;
     end
     else begin
       counter_R <= counter_R_d;
       counter_G <= counter_G_d;
       counter_W <= counter_W_d;
       counter_C <= counter_C_d;
+      offset    <= offset_d;
     end
   end
 
@@ -270,15 +306,14 @@ module SchedulerVRTL
 
     case ( state_reg )
 
-      STATE_IDLE:   if ( req_go    )      state_next = STATE_SOURCE;
-      STATE_SOURCE: if ( start     )      state_next = STATE_INIT; 
-      STATE_INIT:   if ( counter_R == 3'd4  )  state_next = STATE_IDLE;
-//      STATE_START:  if ( resp_go   )    state_next = STATE_RUN;
-//      STATE_RUN:    if ( resp_go   )    state_next = STATE_WAIT;
-//      STATE_WAIT:   if ( resp_go   )    state_next = STATE_END;  
-//                    else                state_next = STATE_RUN;
-//      STATE_END:    if ( resp_go   )    state_next = STATE_WRITE;
-//      STATE_WRITE:  if ( resp_go   )    state_next = STATE_IDLE;
+      STATE_IDLE:   if ( req_go    )           state_next = STATE_SOURCE;
+      STATE_SOURCE: if ( start     )           state_next = STATE_INIT; 
+      STATE_INIT:   if ( counter_R == 3'd3  )  state_next = STATE_IDLE;
+      STATE_START:  if ( counter_G == 3'd3  )  state_next = STATE_RUN;
+      STATE_RUN:    if ( red_resp_val  )       state_next = STATE_WAIT;
+      STATE_WAIT:   if ( resp_go   )           state_next = STATE_END;  
+      STATE_END:    if ( resp_go   )           state_next = STATE_WRITE;
+      STATE_WRITE:  if ( resp_go   )           state_next = STATE_SOURCE;
       default:    state_next = 'x;
 
     endcase
@@ -310,6 +345,48 @@ always_ff @ (posedge clk) begin
     size   <= in_data;    
 end
 
+logic         mem_request;
+logic [31:0]  mem_addr_d [0:1];
+logic [31:0]  mem_data_d [0:1];
+logic         mem_type_d;
+
+
+// combination block interacting with memory
+always_comb begin
+
+    // Memory Request
+    if(mem_request == 1'b1) begin
+        mem_req_val [0] = 1'b1;
+        mem_req_addr[0] = mem_addr_d[0];
+        mem_req_type[0] = mem_type_d;
+        mem_req_data[0] = mem_data_d[0];
+        mem_req_val [1] = 1'b1;
+        mem_req_addr[1] = mem_addr_d[1];
+        mem_req_type[1] = mem_type_d;
+        mem_req_data[1] = mem_data_d[1];
+    end
+    else begin
+        mem_req_val [0] = 1'b0;
+        mem_req_addr[0] = 32'b0;
+        mem_req_type[0] = 1'b0;
+        mem_req_data[0] = 32'b0;
+        mem_req_val [1] = 1'b0;
+        mem_req_addr[1] = 32'b0;
+        mem_req_type[1] = 1'b0;
+        mem_req_data[1] = 32'b0;
+    end
+
+    // Memory Response
+    if(mem_resp_val[0] == 1'b1 && mem_resp_val[1] == 1'b1) begin
+        mem_resp_rdy[0] = 1'b1;
+        mem_resp_rdy[1] = 1'b1;
+    end
+end
+
+//----------------------------------------------------------------------
+// State Outputs
+//----------------------------------------------------------------------
+
 always_comb begin
 
     // default values
@@ -326,6 +403,12 @@ always_comb begin
       in_req_rdy   = 1'b1;
       out_resp_val = 1'b0;
       start        = 1'b0;
+      mem_request  = 1'b0;
+      counter_R_d  = 1'b0;
+      counter_G_d  = 1'b0;
+      counter_C_d  = 1'b0;
+      counter_W_d  = 1'b0;
+      offset_d     = 1'b0;
     end
 
     // SOURCE STATE
@@ -337,16 +420,12 @@ always_comb begin
                     // transit to next state
                     start = 1'b1;
 
-                    // start R counter
-                    counter_R_d = 3'b0;
-
                     // Send the first memory req
-                    mem_req_val [0] = 1'b1;
-                    mem_req_addr[0] = base_R + 8*counter_R;
-                    mem_req_type[0] = 3'b0;
-                    mem_req_val [1] = 1'b1;
-                    mem_req_addr[1] = base_R + 8*counter_R+4;
-                    mem_req_type[1] = 3'b0;
+                    mem_request   = 1'b1;
+                    mem_addr_d[0] = base_R + 8*counter_R;
+                    mem_type_d[0] = 3'b0;
+                    mem_addr_d[1] = base_R + 8*counter_R+4;
+                    mem_type_d[1] = 3'b0;
                 end
                 else if(in_addr == 32'd1) begin
                     EN_base_G = 1'b1;
@@ -376,37 +455,118 @@ always_comb begin
     // INIT STATE
     if(state_reg == STATE_SOURCE) begin
 
-        // enable R counter
-        counter_R_d = counter_R + 3'b1;
-
         // Send Memory Request
-        mem_req_val [0] = 1'b1;
-        mem_req_addr[0] = base_R + 8*counter_R;
-        mem_req_type[0] = 3'b0;
-        mem_req_val [1] = 1'b1;
-        mem_req_addr[1] = base_R + 8*counter_R+4;
-        mem_req_type[1] = 3'b0;
+        mem_request   = 1'b1;
+        mem_addr_d[0] = base_R + 8*counter_R;
+        mem_type_d[0] = 3'b0;
+        mem_addr_d[1] = base_R + 8*counter_R+4;
+        mem_type_d[1] = 3'b0;
         // Receive Memory Response
-        if(mem_resp_val[0] == 1'b1) begin
-            reg_r0_d[counter_R*2] = mem_resp_data[0];
-            mem_resp_rdy[0]      = 1'b1;
-            reg_r0_d[counter_R*2+1] = mem_resp_data[0];
-            mem_resp_rdy[1]      = 1'b1;
+        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
+            reg_r0_d[counter_R*2]   = mem_resp_data[0];
+            reg_r0_d[counter_R*2+1] = mem_resp_data[1];
+            counter_R_d             = counter_R + 3'b1;
         end
     end
-//
-//    // START STATE
-//    if(state_reg == STATE_START) begin
-//        if(mem_req_rdy[0] == 1'b1 && mem_req_rdy[1]) begin
-//            mem_req_val[0] = 0'b1;
-//            mem_req_val[1] = 0'b1;
-//            mem_req_addr[0] = base_G + 8*counter_G;
-//            mem_req_addr[1] = base_G + 8*(counter_G)+4;
-//            mem_req_type[0] = 0'b0;  // Read
-//            mem_req_type[1] = 0'b0;
-//        end
-//    end
-//
+
+    // START STATE
+    if(state_reg == STATE_START) begin
+
+        // Send Memory Request
+        mem_request   = 1'b1;
+        mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
+        mem_type_d[0] = 3'b0;
+        mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset +4;
+        mem_type_d[1] = 3'b0;
+        // Receive Memory Response
+        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
+            if(counter_R == 3'd3) begin
+                reg_r0_d[counter_R*2]   = mem_resp_data[0];
+                reg_r0_d[counter_R*2+1] = mem_resp_data[1];
+                counter_R_d             = counter_R + 3'b1;
+            end
+            else begin
+                reg_g_d[counter_G*2]   = mem_resp_data[0];
+                reg_g_d[counter_G*2+1] = mem_resp_data[0];
+                counter_G_d            = counter_G + 3'b1;
+                counter_R_d            = 3'b0;
+            end
+        end
+    end
+
+    // RUN STATE
+    if(state_reg == STATE_RUN) begin
+
+        // Send Memory Request
+        mem_request   = 1'b1;
+        if(counter_G_d == 3'd3) begin
+            mem_addr_d[0] = base_G + counter_C*offset;
+            mem_addr_d[1] = base_G + counter_C*offset + 4;
+        end
+        else begin
+            mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
+            mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset + 4;
+        end
+        mem_type_d[0] = 3'b0;
+        mem_type_d[1] = 3'b0;
+        // Receive Memory Response
+        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
+            if(counter_G == 3'd3) begin
+                reg_g_d[counter_G*2]   = mem_resp_data[0];
+                reg_g_d[counter_G*2+1] = mem_resp_data[1];
+                counter_G_d            = 3'b0;
+            end
+            else begin
+                reg_g_d[counter_G*2]   = mem_resp_data[0];
+                reg_g_d[counter_G*2+1] = mem_resp_data[0];
+                counter_G_d            = counter_G + 3'b1;
+                counter_R_d            = 3'b0;
+            end
+            reg_g_d[counter_G*2]   = mem_resp_data[0];
+            reg_g_d[counter_G*2+1] = mem_resp_data[0];
+        end
+        // Send Mapper Request Message
+
+    end
+
+    // WAIT STATE
+    if(state_reg == STATE_WAIT) begin
+
+        // Send Memory Request
+        mem_request   = 1'b1;
+        mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
+        mem_type_d[0] = 3'b0;
+        mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset +4;
+        mem_type_d[1] = 3'b0;
+        // Receive Memory Response
+        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
+            reg_g_d[counter_G*2]   = mem_resp_data[0];
+            reg_g_d[counter_G*2+1] = mem_resp_data[0];
+        end
+    end
+
+    // END STATE
+    if(state_reg == STATE_END) begin
+
+        // stop sending Memory Request
+        mem_request   = 1'b0;
+
+        // Send Mapper Request
+    end
+
+    // WRITE STATE
+    if(state_reg == STATE_WRITE) begin
+
+        // Send Memory Request
+        mem_request   = 1'b1;
+        mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
+        mem_data_d[0] = 
+        mem_type_d[0] = 3'b1;
+        mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset +4;
+        mem_data_d[1] = 
+        mem_type_d[1] = 3'b1;
+
+    end
 end
 
   //-----------------------------------------------------------------------
