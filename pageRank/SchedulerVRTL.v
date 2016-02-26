@@ -279,7 +279,8 @@ always_comb begin
 
     // SOURCE STATE
     if(state_reg == STATE_SOURCE) begin
-//        if(in_req_val == 1'b1 && out_req_rdy == 1'b1) begin
+        in_req_rdy = 1'd1;
+        if(in_req_val == 1'b1 && out_resp_rdy == 1'b1) begin
             // Write tpye
             if(in_type == 1'b1) begin
                 if(in_addr == 32'b0) begin
@@ -287,24 +288,22 @@ always_comb begin
                 end
                 else if(in_addr == 32'd1) begin
                     EN_base_G = 1'b1;
-                    in_req_rdy = 1'b1;
                 end
                 else if(in_addr == 32'd2) begin
                     EN_base_R = 1'b1;
-                    in_req_rdy = 1'b1;
                 end
                 else if(in_addr == 32'd3) begin
                     EN_size = 1'b1;
-                    in_req_rdy = 1'b1;
                 end
                 out_type = 1'b1;
                 out_data = 32'b0;
                 out_resp_val = 1'b1;
+     
             end
             // Read type
 //            if(in_type == ) begin
 //            end
-//        end
+        end
     end
 
 //    // INIT STATE

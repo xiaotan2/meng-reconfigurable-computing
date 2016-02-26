@@ -79,5 +79,5 @@ class SchedulerVRTL( VerilogModel ):
 
 
   def line_trace( s ):
-    return "{}".format( s.direq.msg )
+    return "req{} val{} rdy{} resp{} val{} rdy{}".format( s.direq.msg, s.direq.val, s.direq.rdy, s.diresp.msg, s.diresp.val, s.diresp.rdy )
 

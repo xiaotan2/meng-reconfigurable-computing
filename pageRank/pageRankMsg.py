@@ -19,7 +19,7 @@ class pageRankReqMsg( BitStructDefinition ):
     return msg
 
   def __str__( s ):
-    return "{}:{}".format( s.data, s.addr, s.type_ )
+    return "d{}:a{}:t{}".format( s.data, s.addr, s.type_ )
 
 class pageRankRespMsg( BitStructDefinition ):
 
@@ -37,4 +37,4 @@ class pageRankRespMsg( BitStructDefinition ):
     return msg
 
   def __str__( s ):
-    return "{}:{}".format( s.data, s.type_ )
+    return "d{}:t{}".format( s.data, s.type_ )
