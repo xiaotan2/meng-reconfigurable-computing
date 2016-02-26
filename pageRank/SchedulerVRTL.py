@@ -52,6 +52,13 @@ class SchedulerVRTL( VerilogModel ):
  #     'out_type'        : s.diresp.msg.type_,
  #     'out_data'        : s.diresp.msg.data,
 
+      'in_req_msg'      : s.direq.msg,
+      'in_req_val'      : s.direq.val,
+      'in_req_rdy'      : s.direq.rdy,
+
+      'out_resp_msg'    : s.diresp.msg,
+      'out_resp_val'    : s.diresp.val,
+      'out_resp_rdy'    : s.diresp.rdy,
 
       'mem_req0_msg'    : s.memreq[0].msg,
       'mem_req0_val'    : s.memreq[0].val,

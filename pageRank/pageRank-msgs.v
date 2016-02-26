@@ -76,7 +76,7 @@ module pageRankReqMsgPack
   input  logic [`PAGERANK_REQ_MSG_DATA_NBITS(t,a,d)-1:0] data,
 
   output logic [`PAGERANK_REQ_MSG_NBITS(t,a,d)-1:0] msg
-)
+);
 
   assign msg[`PAGERANK_REQ_MSG_TYPE_FIELD(t,a,d)] = type_;
   assign msg[`PAGERANK_REQ_MSG_ADDR_FIELD(t,a,d)] = addr;
@@ -109,7 +109,7 @@ module pageRankReqMsgUnpack
   output  logic [`PAGERANK_REQ_MSG_TYPE_NBITS(t,a,d)-1:0] type_,
   output  logic [`PAGERANK_REQ_MSG_ADDR_NBITS(t,a,d)-1:0] addr,
   output  logic [`PAGERANK_REQ_MSG_DATA_NBITS(t,a,d)-1:0] data
-)
+);
 
   assign type_ = msg[`PAGERANK_REQ_MSG_TYPE_FIELD(t,a,d)];
   assign addr  = msg[`PAGERANK_REQ_MSG_ADDR_FIELD(t,a,d)];
@@ -170,14 +170,14 @@ module pageRankRespMsgPack
   parameter d = p_data_nbits
 )(
 
-  input  logic [`PAGERANK_RESP_MSG_TYPE_NBITS(t,a,d)-1:0] type_,
-  input  logic [`PAGERANK_RESP_MSG_DATA_NBITS(t,a,d)-1:0] data,
+  input  logic [`PAGERANK_RESP_MSG_TYPE_NBITS(t,d)-1:0] type_,
+  input  logic [`PAGERANK_RESP_MSG_DATA_NBITS(t,d)-1:0] data,
 
-  output logic [`PAGERANK_RESP_MSG_NBITS(t,a,d)-1:0] msg
-)
+  output logic [`PAGERANK_RESP_MSG_NBITS(t,d)-1:0] msg
+);
 
-  assign msg[`PAGERANK_RESP_MSG_TYPE_FIELD(t,a,d)] = type_;
-  assign msg[`PAGERANK_RESP_MSG_DATA_FIELD(t,a,d)] = data;
+  assign msg[`PAGERANK_RESP_MSG_TYPE_FIELD(t,d)] = type_;
+  assign msg[`PAGERANK_RESP_MSG_DATA_FIELD(t,d)] = data;
   
 endmodule
 
@@ -197,15 +197,15 @@ module pageRankRespMsgUnpack
 ) (
 
   // input bits
-  input logic [`PAGERANK_RESP_MSG_NBITS(t,a,d)-1:0]  msg,
+  input logic [`PAGERANK_RESP_MSG_NBITS(t,d)-1:0]  msg,
 
   // output message
   
-  output  logic [`PAGERANK_RESP_MSG_TYPE_NBITS(t,a,d)-1:0] type_,
-  output  logic [`PAGERANK_RESP_MSG_DATA_NBITS(t,a,d)-1:0] data
-)
+  output  logic [`PAGERANK_RESP_MSG_TYPE_NBITS(t,d)-1:0] type_,
+  output  logic [`PAGERANK_RESP_MSG_DATA_NBITS(t,d)-1:0] data
+);
 
-  assign type_ = msg[`PAGERANK_RESP_MSG_TYPE_FIELD(t,a,d)];
-  assign data  = msg[`PAGERANK_RESP_MSG_DATA_FIELD(t,a,d)];
+  assign type_ = msg[`PAGERANK_RESP_MSG_TYPE_FIELD(t,d)];
+  assign data  = msg[`PAGERANK_RESP_MSG_DATA_FIELD(t,d)];
 
 endmodule
