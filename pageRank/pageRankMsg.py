@@ -7,7 +7,7 @@ class pageRankReqMsg( BitStructDefinition ):
   TYPE_READ = 0
   TYPE_WRITE = 1
   def __init__( s ):
-    s.data  = BitField ( 49 )
+    s.data  = BitField ( 32 )
     s.addr  = BitField ( 32 )
     s.type_ = BitField ( 1 )
 
