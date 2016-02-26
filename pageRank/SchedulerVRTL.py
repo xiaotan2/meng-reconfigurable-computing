@@ -79,5 +79,5 @@ class SchedulerVRTL( VerilogModel ):
 
 
   def line_trace( s ):
-    return "{}".format( s.memreq[0].msg )
+    return "{}".format( s.direq.msg )
 

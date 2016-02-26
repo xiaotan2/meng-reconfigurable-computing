@@ -145,81 +145,83 @@ module SchedulerVRTL
     .data   (out_data)
   );
 
-//  //----------------------------------------------------------------------- 
-//  // Two set of registers to store R
-//  //----------------------------------------------------------------------- 
-//
-//  // registers
-//  logic [nbits-1:0] reg_r0 [0:7];
-//  logic [nbits-1:0] reg_r1 [0:7];
-// 
-//  // wires 
-//  logic [nbits-1:0] reg_r0_d [0:7];
-//  logic [nbits-1:0] reg_r0_d [0:7];
-//
-//  integer i;
-//
-//  always_ff @( posedge clk ) begin
-//    if ( reset ) begin
-//      reg_r0 <= `{default: 32'b0};
-//      reg_r1 <= `{default: 32'b0};
-//    else begin
-//      for ( i = 0; i < 8; i = i + 1 ) begin
-//        reg_r0[i] <= reg_r0_d[i];
-//        reg_r1[i] <= reg_r1_d[i];
-//      end
-//    end
-//  end
-//
-//  //----------------------------------------------------------------------
-//  // State Definitions
-//  //----------------------------------------------------------------------
-//
-//  localparam STATE_IDLE   = 3'd0;
-//  localparam STATE_SOURCE = 3'd1;
-//  localparam STATE_INIT   = 3'd2;
-//  localparam STATE_START  = 3'd3;
-//  localparam STATE_RUN    = 3'd4;
-//  localparam STATE_WAIT   = 3'd5;
-//  localparam STATE_END    = 3'd6;
-//  localparam STATE_WRITE  = 3'd7;
-//
-//  //----------------------------------------------------------------------
-//  // State
-//  //----------------------------------------------------------------------
-//
-//  logic [1:0] state_reg;
-//  logic [1:0] state_next;
-//
-//  always_ff @( posedge clk ) begin
-//    if ( reset ) begin
-//      state_reg <= STATE_IDLE;
-//    end
-//    else begin
-//      state_reg <= state_next;
-//    end
-//  end
-//
-//  //----------------------------------------------------------------------
-//  // State Transitions
-//  //----------------------------------------------------------------------
-//
-//  logic req_go;
-//  logic resp_go;
-//  logic start;
-//
-//  assign req_go       = in_req_val  && out_req_rdy;
-//  assign resp_go      = out_resp_val && in_resp_rdy;
-//  assign start        = 1'b1;
-//
-//  always_comb begin
-//
-//    state_next = state_reg;
-//
-//    case ( state_reg )
-//
-//      STATE_IDLE:   if ( req_go    )    state_next = STATE_SOURCE;
-//      STATE_SOURCE: if ( start     )    state_next = STATE_INIT;
+  //----------------------------------------------------------------------- 
+  // Two set of registers to store R
+  //----------------------------------------------------------------------- 
+
+  // registers
+  logic [nbits-1:0] reg_r0 [0:7];
+  logic [nbits-1:0] reg_r1 [0:7];
+ 
+  // wires 
+  logic [nbits-1:0] reg_r0_d [0:7];
+  logic [nbits-1:0] reg_r1_d [0:7];
+
+  integer i;
+
+  always_ff @( posedge clk ) begin
+    if ( reset ) begin
+      for ( i = 0; i < 8; i = i + 1 ) begin
+        reg_r0[i] <= 32'b0;
+        reg_r1[i] <= 32'b0;
+      end
+    end
+    else begin
+      for ( i = 0; i < 8; i = i + 1 ) begin
+        reg_r0[i] <= reg_r0_d[i];
+        reg_r1[i] <= reg_r1_d[i];
+      end
+    end
+  end
+
+  //----------------------------------------------------------------------
+  // State Definitions
+  //----------------------------------------------------------------------
+
+  localparam STATE_IDLE   = 3'd0;
+  localparam STATE_SOURCE = 3'd1;
+  localparam STATE_INIT   = 3'd2;
+  localparam STATE_START  = 3'd3;
+  localparam STATE_RUN    = 3'd4;
+  localparam STATE_WAIT   = 3'd5;
+  localparam STATE_END    = 3'd6;
+  localparam STATE_WRITE  = 3'd7;
+
+  //----------------------------------------------------------------------
+  // State
+  //----------------------------------------------------------------------
+
+  logic [2:0] state_reg;
+  logic [2:0] state_next;
+
+  always_ff @( posedge clk ) begin
+    if ( reset ) begin
+      state_reg <= STATE_IDLE;
+    end
+    else begin
+      state_reg <= state_next;
+    end
+  end
+
+  //----------------------------------------------------------------------
+  // State Transitions
+  //----------------------------------------------------------------------
+
+  logic req_go;
+  logic resp_go;
+  logic start;
+
+  assign req_go       = in_req_val  && in_req_rdy;
+  assign resp_go      = out_resp_val && out_resp_rdy;
+
+  always_comb begin
+
+    state_next = state_reg;
+
+    case ( state_reg )
+
+      STATE_IDLE:   if ( req_go    )    state_next = STATE_SOURCE;
+      STATE_SOURCE: if ( start     )    state_next = STATE_IDLE; //  state_next = STATE_INIT;
 //      STATE_INIT:   if ( resp_go   )    state_next = STATE_START;
 //      STATE_START:  if ( resp_go   )    state_next = STATE_RUN;
 //      STATE_RUN:    if ( resp_go   )    state_next = STATE_WAIT;
@@ -227,60 +229,84 @@ module SchedulerVRTL
 //                    else                state_next = STATE_RUN;
 //      STATE_END:    if ( resp_go   )    state_next = STATE_WRITE;
 //      STATE_WRITE:  if ( resp_go   )    state_next = STATE_IDLE;
-//      default:    state_next = 'x;
-//
-//    endcase
-//
-//  end
-//
-//logic EN_base_G;
-//assign EN_base_G = 1'b0;
-//logic EN_base_R;
-//assign EN_base_R = 1'b0;
-//logic EN_size;
-//assign EN_size = 1'b0;
-//
-//
-//always_ff @ (posedge clk) begin
-//  if (EN_base_G)
-//    Base_G <= 
-//reg base_G;
-//reg base_R;
-//reg counter_R;
-//reg counter_G;
-//reg counter_global;
-//
-//
-//always_comb begin
-//    // IDLE STATE
-//
-//    // SOURCE STATE
-//    if(state_reg == STATE_SOURCE) begin
+      default:    state_next = 'x;
+
+    endcase
+
+  end
+
+// regs base address of G and R, size
+
+logic [31:0]  base_G;
+logic [31:0]  base_R;
+logic [31:0]  size;
+
+logic         EN_base_G;
+logic         EN_base_R;
+logic         EN_size;
+
+
+always_ff @ (posedge clk) begin
+  if ( reset ) begin 
+    base_G <= 32'b0;
+    base_R <= 32'b0;
+    size   <= 32'b0;
+  end    
+  else if ( EN_base_G )
+    base_G <= in_data;
+  else if ( EN_base_R )
+    base_R <= in_data;
+  else if ( EN_size   )
+    size   <= in_data;    
+end
+// counters
+
+logic counter_R;
+logic counter_G;
+logic counter_global;
+
+
+always_comb begin
+    start = 1'b0;
+    in_req_rdy = 1'b0;
+    out_resp_val = 1'b0;
+
+    // IDLE STATE
+    if (state_reg == STATE_IDLE ) begin
+      start = 1'b0;
+      in_req_rdy = 1'b1;
+    end
+
+    // SOURCE STATE
+    if(state_reg == STATE_SOURCE) begin
 //        if(in_req_val == 1'b1 && out_req_rdy == 1'b1) begin
-//            // Write tpye
-//            if(in_type == 1'b1) begin
-//                if(in_addr == 32'b0) begin
-//                    start = 1'b1;
-//                end
-//                else if(in_addr == 32'b1) begin
-//                    EN_base_G = 1'b1;
-//                end
-//                else if(in_addr == 32'd2) begin
-//                    EN_base_R = 1'b1;
-//                end
-//                else if(in_addr == 32'd3) begin
-//                    EN_size = 1'b1;
-//                end
-//                out_type = 1'b1;
-//                out_data = 32'b0;
-//                out_resp_val = 1'b1;
-//            end
-//            // Read type
-//            if(in_type == 1'b0) begin
+            // Write tpye
+            if(in_type == 1'b1) begin
+                if(in_addr == 32'b0) begin
+                    start = 1'b1;
+                end
+                else if(in_addr == 32'd1) begin
+                    EN_base_G = 1'b1;
+                    in_req_rdy = 1'b1;
+                end
+                else if(in_addr == 32'd2) begin
+                    EN_base_R = 1'b1;
+                    in_req_rdy = 1'b1;
+                end
+                else if(in_addr == 32'd3) begin
+                    EN_size = 1'b1;
+                    in_req_rdy = 1'b1;
+                end
+                out_type = 1'b1;
+                out_data = 32'b0;
+                out_resp_val = 1'b1;
+            end
+            // Read type
+//            if(in_type == ) begin
 //            end
 //        end
-//    end
-//
+    end
+
 //    // INIT STATE
 //    if(state_reg == STATE_SOURCE) begin
 //        if(mem_req_rdy[0] == 1'b1 && mem_req_rdy[1] == 1'b1) begin
@@ -305,5 +331,5 @@ module SchedulerVRTL
 //        end
 //    end
 //
-//end
+end
 endmodule
