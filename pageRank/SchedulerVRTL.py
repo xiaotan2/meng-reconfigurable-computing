@@ -10,9 +10,11 @@ from pageRankMsg  import *
 
 class SchedulerVRTL( VerilogModel ):
 
+  vlinetrace = True
+
   # Constructor
 
-  def __init__( s, nbits = 32, nports = 2 ):
+  def __init__( s, nbits = 32, nports = 2, n = 8 ):
 
     #---------------------------------------------------------------------------
     # Interface
@@ -32,7 +34,8 @@ class SchedulerVRTL( VerilogModel ):
  
     s.set_params({
       'nbits'  : nbits,
-      'nports' : nports
+      'nports' : nports,
+      'n'      : n
     })
 
     # verilog ports
@@ -78,6 +81,9 @@ class SchedulerVRTL( VerilogModel ):
     })
 
 
-  def line_trace( s ):
-    return "req{} val{} rdy{} resp{} val{} rdy{}".format( s.direq.msg, s.direq.val, s.direq.rdy, s.diresp.msg, s.diresp.val, s.diresp.rdy )
-
+#  def line_trace( s ):
+#    return "q({}):v({}):r({}) p({}):v({}):r({}) | req {} resp {} req{} resp {}".format(
+#            s.direq.msg, s.direq.val, s.direq.rdy, 
+#            s.diresp.msg, s.diresp.val, s.diresp.rdy,
+#            s.memreq[0].msg, s.memresp[0].msg, s.memreq[1].msg, s.memresp[1].msg )
+#
