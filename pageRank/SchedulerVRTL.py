@@ -14,7 +14,7 @@ class SchedulerVRTL( VerilogModel ):
 
   # Constructor
 
-  def __init__( s, nbits = 32, nports = 2, n = 8 ):
+  def __init__( s, nbits = 8, nports = 1, n = 8 ):
 
     #---------------------------------------------------------------------------
     # Interface
@@ -23,8 +23,8 @@ class SchedulerVRTL( VerilogModel ):
     s.direq     = InValRdyBundle  ( pageRankReqMsg()  )
     s.diresp    = OutValRdyBundle ( pageRankRespMsg() )
 
-    s.memreq    = [ OutValRdyBundle  ( MemReqMsg(8,32,32) ) for _ in range ( nports ) ]
-    s.memresp   = [ InValRdyBundle   ( MemRespMsg(8,32)   ) for _ in range ( nports ) ]
+    s.memreq    = OutValRdyBundle  ( MemReqMsg(8,32,32) ) 
+    s.memresp   = InValRdyBundle   ( MemRespMsg(8,32)   ) 
 
     #---------------------------------------------------------------------------
     # Verilog import setup
@@ -55,29 +55,22 @@ class SchedulerVRTL( VerilogModel ):
  #     'out_type'        : s.diresp.msg.type_,
  #     'out_data'        : s.diresp.msg.data,
 
-      'in_req_msg'      : s.direq.msg,
-      'in_req_val'      : s.direq.val,
-      'in_req_rdy'      : s.direq.rdy,
+      'pr_req_msg'     : s.direq.msg,
+      'pr_req_val'     : s.direq.val,
+      'pr_req_rdy'     : s.direq.rdy,
 
-      'out_resp_msg'    : s.diresp.msg,
-      'out_resp_val'    : s.diresp.val,
-      'out_resp_rdy'    : s.diresp.rdy,
+      'pr_resp_msg'    : s.diresp.msg,
+      'pr_resp_val'    : s.diresp.val,
+      'pr_resp_rdy'    : s.diresp.rdy,
 
-      'mem_req0_msg'    : s.memreq[0].msg,
-      'mem_req0_val'    : s.memreq[0].val,
-      'mem_req0_rdy'    : s.memreq[0].rdy,
+      'mem_req_msg'    : s.memreq.msg,
+      'mem_req_val'    : s.memreq.val,
+      'mem_req_rdy'    : s.memreq.rdy,
 
-      'mem_resp0_msg'   : s.memresp[0].msg,
-      'mem_resp0_val'   : s.memresp[0].val,
-      'mem_resp0_rdy'   : s.memresp[0].rdy,
+      'mem_resp_msg'   : s.memresp.msg,
+      'mem_resp_val'   : s.memresp.val,
+      'mem_resp_rdy'   : s.memresp.rdy,
 
-      'mem_req1_msg'    : s.memreq[1].msg,
-      'mem_req1_val'    : s.memreq[1].val,
-      'mem_req1_rdy'    : s.memreq[1].rdy,
-
-      'mem_resp1_msg'   : s.memresp[1].msg,
-      'mem_resp1_val'   : s.memresp[1].val,
-      'mem_resp1_rdy'   : s.memresp[1].rdy,
     })
 
 

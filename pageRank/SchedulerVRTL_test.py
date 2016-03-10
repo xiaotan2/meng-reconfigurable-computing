@@ -40,7 +40,7 @@ class TestHarness (Model):
     s.src       = TestSource    ( pageRankReqMsg(),  src_msgs,  src_delay  )
     s.di        = SchedulerVRTL
     s.sink      = TestSink      ( pageRankRespMsg(), sink_msgs, sink_delay )
-    s.mem       = TestMemory    ( MemMsg(8,32,32), 2, stall_prob, latency   )
+    s.mem       = TestMemory    ( MemMsg(8,32,32), 1, stall_prob, latency   )
 
     # Dump VCD
     if dump_vcd:
@@ -53,10 +53,8 @@ class TestHarness (Model):
     # Connect
     s.connect( s.src.out,              s.di.direq        )
     s.connect( s.di.diresp,            s.sink.in_        )
-    s.connect( s.di.memreq[0],           s.mem.reqs[0]     )
-    s.connect( s.di.memresp[0],          s.mem.resps[0]    )
-    s.connect( s.di.memreq[1],           s.mem.reqs[1]     )
-    s.connect( s.di.memresp[1],          s.mem.resps[1]    )
+    s.connect( s.di.memreq,            s.mem.reqs[0]     )
+    s.connect( s.di.memresp,           s.mem.resps[0]    )
 
   def done(s):
     return s.src.done and s.sink.done
