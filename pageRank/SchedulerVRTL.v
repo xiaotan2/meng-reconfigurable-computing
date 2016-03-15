@@ -291,286 +291,286 @@ module SchedulerVRTL
 
   end
 
-// regs base address of G and R, size
-
-logic [31:0]  base_G;
-logic [31:0]  base_R;
-logic [31:0]  size;
-
-logic         base_G_en;
-logic         base_R_en;
-logic         size_en;
-
-
-always_ff @ (posedge clk) begin
-  if ( reset ) begin 
-    base_G <= 32'b0;
-    base_R <= 32'b0;
-    size   <= 32'b0;
-  end    
-  else if ( base_G_en )
-    base_G <= pr_req_data;
-  else if ( base_R_en )
-    base_R <= pr_req_data;
-  else if ( size_en   )
-    size   <= pr_req_data;    
-end
-
-//logic         mem_request;
-//logic [31:0]  mem_addr_d;
-//logic [31:0]  mem_data_d;
-//logic         mem_type_d;
-//
-//
-//// combination block interacting with memory
-//always_comb begin
-//
-//    // Memory Request
-//    if(mem_request == 1'b1) begin
-//        mem_req_val  = 1'b1;
-//        mem_req_addr = mem_addr_d;
-//        mem_req_type = mem_type_d;
-//        mem_req_data = mem_data_d;
-//    end
-//    else begin
-//        mem_req_val  = 1'b0;
-//        mem_req_addr = 32'b0;
-//        mem_req_type = 1'b0;
-//        mem_req_data = 32'b0;
-//    end
-//
-//    // Memory Response
-//    if(mem_resp_val[0] == 1'b1 && mem_resp_val[1] == 1'b1) begin
-//        mem_resp_rdy[0] = 1'b1;
-//        mem_resp_rdy[1] = 1'b1;
-//    end
-//end
-
-//----------------------------------------------------------------------
-// State Outputs
-//----------------------------------------------------------------------
-
-logic load_base_R;
-logic load_base_G;
-logic load_size;
-
-assign load_base_G = pr_req_go && ( pr_req_addr == 32'd1 );
-assign load_base_R = pr_req_go && ( pr_req_addr == 32'd2 );
-assign load_size   = pr_req_go && ( pr_req_addr == 32'd3 );
-
-
-always_comb begin
-
-    // default values
-
-    pr_req_rdy   = 1'b0;
-    pr_resp_val  = 1'b0;
-
-    mem_req_val  = 1'b0;
-    mem_resp_rdy = 1'b0;
-
-    base_G_en    = 1'b0;
-    base_R_en    = 1'b0;
-    size_en      = 1'b0;
-
-    counter_R_d  = 3'b0;
-    counter_G_d  = 3'b0;
-    counter_C_d  = 3'b0;
-    counter_W_d  = 3'b0;
-    offset_d     = 3'b0;
-
-    /////////////////////////  INIT STATE    ///////////////////////////////////
-
-    if( state_reg == STATE_INIT ) begin
-
-      pr_req_rdy  = pr_resp_rdy;
-      pr_resp_val = pr_req_val;
-
-      // Write tpye
-      if ( pr_req_type == pr_wr ) begin
-        if ( go ) begin
-          // Send the first memory req
-          mem_req_val  = 1'b1;
-          mem_req_addr = base_R;
-          mem_req_type = mem_rd;
-        end
-        else if( load_base_G ) begin
-          base_G_en  = 1'b1;
-        end
-        else if( load_base_R ) begin
-          base_R_en  = 1'b1;
-        end
-        else if( load_size   ) begin
-          size_en    = 1'b1;
-        end
-
-        pr_resp_type = pr_wr;
-        pr_resp_data = 32'b0;
-         
-      end
-      // Read type
-      else begin
-          pr_resp_type = pr_rd;
-          pr_resp_data = 32'b1;
-      end
-    end
-
-//    ///////////////////// READR STATE //////////////////////////////////////
-//
-//    if(state_reg == STATE_SOURCE) begin
-//
-//        // Send Memory Request
-//        mem_req_val   = 1'b1;
-//        mem_addr      = base_R + 8*counter_R;
-//        mem_type      = 3'b0;
-//
-//        // Receive Memory Response
-//        if( memresp_go ) begin
-//            reg_r0_d[counter_R*2]   = mem_resp_data[0];
-//            reg_r0_d[counter_R*2+1] = mem_resp_data[1];
-//            counter_R_d             = counter_R + 3'b1;
-//        end
-//    end
-//
-//    // START STATE
-//    if(state_reg == STATE_START) begin
-//
-//        // Send Memory Request
-//        mem_request   = 1'b1;
-//        mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
-//        mem_type_d[0] = 3'b0;
-//        mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset +4;
-//        mem_type_d[1] = 3'b0;
-//        // Receive Memory Response
-//        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
-//            if(counter_R == 3'd3) begin
-//                reg_r0_d[counter_R*2]   = mem_resp_data[0];
-//                reg_r0_d[counter_R*2+1] = mem_resp_data[1];
-//                counter_R_d             = counter_R + 3'b1;
-//            end
-//            else begin
-//                reg_g_d[counter_G*2]   = mem_resp_data[0];
-//                reg_g_d[counter_G*2+1] = mem_resp_data[0];
-//                counter_G_d            = counter_G + 3'b1;
-//                counter_R_d            = 3'b0;
-//            end
-//        end
-//    end
-//
-//    // RUN STATE
-//    if(state_reg == STATE_RUN) begin
-//
-//        // Send Memory Request
-//        mem_request   = 1'b1;
-//        if(counter_G_d == 3'd3) begin
-//            mem_addr_d[0] = base_G + counter_C*offset;
-//            mem_addr_d[1] = base_G + counter_C*offset + 4;
-//        end
-//        else begin
-//            mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
-//            mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset + 4;
-//        end
-//        mem_type_d[0] = 3'b0;
-//        mem_type_d[1] = 3'b0;
-//        // Receive Memory Response
-//        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
-//            if(counter_G == 3'd3) begin
-//                reg_g_d[counter_G*2]   = mem_resp_data[0];
-//                reg_g_d[counter_G*2+1] = mem_resp_data[1];
-//                counter_G_d            = 3'b0;
-//            end
-//            else begin
-//                reg_g_d[counter_G*2]   = mem_resp_data[0];
-//                reg_g_d[counter_G*2+1] = mem_resp_data[0];
-//                counter_G_d            = counter_G + 3'b1;
-//                counter_R_d            = 3'b0;
-//            end
-//            reg_g_d[counter_G*2]   = mem_resp_data[0];
-//            reg_g_d[counter_G*2+1] = mem_resp_data[0];
-//        end
-//        // Send Mapper Request Message
-//
-//    end
-//
-//    // WAIT STATE
-//    if(state_reg == STATE_WAIT) begin
-//
-//        // Send Memory Request
-//        mem_request   = 1'b1;
-//        mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
-//        mem_type_d[0] = 3'b0;
-//        mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset +4;
-//        mem_type_d[1] = 3'b0;
-//        // Receive Memory Response
-//        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
-//            reg_g_d[counter_G*2]   = mem_resp_data[0];
-//            reg_g_d[counter_G*2+1] = mem_resp_data[0];
-//        end
-//    end
-//
-//    // END STATE
-//    if(state_reg == STATE_END) begin
-//
-//        // stop sending Memory Request
-//        mem_request   = 1'b0;
-//
-//        // Send Mapper Request
-//    end
-//
-//    // WRITE STATE
-//    if(state_reg == STATE_WRITE) begin
-//
-//        // Send Memory Request
-//        mem_request   = 1'b1;
-//        mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
-//        mem_data_d[0] = 
-//        mem_type_d[0] = 3'b1;
-//        mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset +4;
-//        mem_data_d[1] = 
-//        mem_type_d[1] = 3'b1;
-//
-//    end
-end
-
-  //-----------------------------------------------------------------------
-  // Line Tracing
-  //-----------------------------------------------------------------------
-
-  `ifndef SYNTHESIS
-
-  logic [`VC_TRACE_NBITS-1:0] str;
-
-  `VC_TRACE_BEGIN
-  begin
-
-    $sformat( str, "%x:%x:%x", pr_req_data, pr_req_addr, pr_req_type );
-    vc_trace.append_val_rdy_str( trace_str, pr_req_val, pr_req_rdy, str );
-
-    $sformat( str, " | GRS(%x | %x | %d)", base_G, base_R, size );
-    vc_trace.append_str( trace_str, str );
-    vc_trace.append_str( trace_str, " " );
-
-    vc_trace.append_str( trace_str, "(" );
-
-    case ( state_reg )
-      STATE_INIT:
-        vc_trace.append_str( trace_str, "INIT" );
-
-      default:
-        vc_trace.append_str( trace_str, "?  " );
-
-    endcase
-
-    vc_trace.append_str( trace_str, ")" );
-
-    $sformat( str, "%x:%x", pr_resp_data, pr_resp_type );
-    vc_trace.append_val_rdy_str( trace_str, pr_resp_val, pr_resp_rdy, str );
-
+  // regs base address of G and R, size
+  
+  logic [31:0]  base_G;
+  logic [31:0]  base_R;
+  logic [31:0]  size;
+  
+  logic         base_G_en;
+  logic         base_R_en;
+  logic         size_en;
+  
+  
+  always_ff @ (posedge clk) begin
+    if ( reset ) begin 
+      base_G <= 32'b0;
+      base_R <= 32'b0;
+      size   <= 32'b0;
+    end    
+    else if ( base_G_en )
+      base_G <= pr_req_data;
+    else if ( base_R_en )
+      base_R <= pr_req_data;
+    else if ( size_en   )
+      size   <= pr_req_data;    
   end
-  `VC_TRACE_END
-
-  `endif /* SYNTHESIS */
-
-
-
+  
+  //logic         mem_request;
+  //logic [31:0]  mem_addr_d;
+  //logic [31:0]  mem_data_d;
+  //logic         mem_type_d;
+  //
+  //
+  //// combination block interacting with memory
+  //always_comb begin
+  //
+  //    // Memory Request
+  //    if(mem_request == 1'b1) begin
+  //        mem_req_val  = 1'b1;
+  //        mem_req_addr = mem_addr_d;
+  //        mem_req_type = mem_type_d;
+  //        mem_req_data = mem_data_d;
+  //    end
+  //    else begin
+  //        mem_req_val  = 1'b0;
+  //        mem_req_addr = 32'b0;
+  //        mem_req_type = 1'b0;
+  //        mem_req_data = 32'b0;
+  //    end
+  //
+  //    // Memory Response
+  //    if(mem_resp_val[0] == 1'b1 && mem_resp_val[1] == 1'b1) begin
+  //        mem_resp_rdy[0] = 1'b1;
+  //        mem_resp_rdy[1] = 1'b1;
+  //    end
+  //end
+  
+  //----------------------------------------------------------------------
+  // State Outputs
+  //----------------------------------------------------------------------
+  
+  logic load_base_R;
+  logic load_base_G;
+  logic load_size;
+  
+  assign load_base_G = pr_req_go && ( pr_req_addr == 32'd1 );
+  assign load_base_R = pr_req_go && ( pr_req_addr == 32'd2 );
+  assign load_size   = pr_req_go && ( pr_req_addr == 32'd3 );
+  
+  
+  always_comb begin
+  
+      // default values
+  
+      pr_req_rdy   = 1'b0;
+      pr_resp_val  = 1'b0;
+  
+      mem_req_val  = 1'b0;
+      mem_resp_rdy = 1'b0;
+  
+      base_G_en    = 1'b0;
+      base_R_en    = 1'b0;
+      size_en      = 1'b0;
+  
+      counter_R_d  = 3'b0;
+      counter_G_d  = 3'b0;
+      counter_C_d  = 3'b0;
+      counter_W_d  = 3'b0;
+      offset_d     = 3'b0;
+  
+      /////////////////////////  INIT STATE    ///////////////////////////////////
+  
+      if( state_reg == STATE_INIT ) begin
+  
+        pr_req_rdy  = pr_resp_rdy;
+        pr_resp_val = pr_req_val;
+  
+        // Write tpye
+        if ( pr_req_type == pr_wr ) begin
+          if ( go ) begin
+            // Send the first memory req
+            mem_req_val  = 1'b1;
+            mem_req_addr = base_R;
+            mem_req_type = mem_rd;
+          end
+          else if( load_base_G ) begin
+            base_G_en  = 1'b1;
+          end
+          else if( load_base_R ) begin
+            base_R_en  = 1'b1;
+          end
+          else if( load_size   ) begin
+            size_en    = 1'b1;
+          end
+  
+          pr_resp_type = pr_wr;
+          pr_resp_data = 32'b0;
+           
+        end
+        // Read type
+        else begin
+            pr_resp_type = pr_rd;
+            pr_resp_data = 32'b1;
+        end
+      end
+  
+  //    ///////////////////// READR STATE //////////////////////////////////////
+  //
+  //    if(state_reg == STATE_SOURCE) begin
+  //
+  //        // Send Memory Request
+  //        mem_req_val   = 1'b1;
+  //        mem_addr      = base_R + 8*counter_R;
+  //        mem_type      = 3'b0;
+  //
+  //        // Receive Memory Response
+  //        if( memresp_go ) begin
+  //            reg_r0_d[counter_R*2]   = mem_resp_data[0];
+  //            reg_r0_d[counter_R*2+1] = mem_resp_data[1];
+  //            counter_R_d             = counter_R + 3'b1;
+  //        end
+  //    end
+  //
+  //    // START STATE
+  //    if(state_reg == STATE_START) begin
+  //
+  //        // Send Memory Request
+  //        mem_request   = 1'b1;
+  //        mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
+  //        mem_type_d[0] = 3'b0;
+  //        mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset +4;
+  //        mem_type_d[1] = 3'b0;
+  //        // Receive Memory Response
+  //        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
+  //            if(counter_R == 3'd3) begin
+  //                reg_r0_d[counter_R*2]   = mem_resp_data[0];
+  //                reg_r0_d[counter_R*2+1] = mem_resp_data[1];
+  //                counter_R_d             = counter_R + 3'b1;
+  //            end
+  //            else begin
+  //                reg_g_d[counter_G*2]   = mem_resp_data[0];
+  //                reg_g_d[counter_G*2+1] = mem_resp_data[0];
+  //                counter_G_d            = counter_G + 3'b1;
+  //                counter_R_d            = 3'b0;
+  //            end
+  //        end
+  //    end
+  //
+  //    // RUN STATE
+  //    if(state_reg == STATE_RUN) begin
+  //
+  //        // Send Memory Request
+  //        mem_request   = 1'b1;
+  //        if(counter_G_d == 3'd3) begin
+  //            mem_addr_d[0] = base_G + counter_C*offset;
+  //            mem_addr_d[1] = base_G + counter_C*offset + 4;
+  //        end
+  //        else begin
+  //            mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
+  //            mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset + 4;
+  //        end
+  //        mem_type_d[0] = 3'b0;
+  //        mem_type_d[1] = 3'b0;
+  //        // Receive Memory Response
+  //        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
+  //            if(counter_G == 3'd3) begin
+  //                reg_g_d[counter_G*2]   = mem_resp_data[0];
+  //                reg_g_d[counter_G*2+1] = mem_resp_data[1];
+  //                counter_G_d            = 3'b0;
+  //            end
+  //            else begin
+  //                reg_g_d[counter_G*2]   = mem_resp_data[0];
+  //                reg_g_d[counter_G*2+1] = mem_resp_data[0];
+  //                counter_G_d            = counter_G + 3'b1;
+  //                counter_R_d            = 3'b0;
+  //            end
+  //            reg_g_d[counter_G*2]   = mem_resp_data[0];
+  //            reg_g_d[counter_G*2+1] = mem_resp_data[0];
+  //        end
+  //        // Send Mapper Request Message
+  //
+  //    end
+  //
+  //    // WAIT STATE
+  //    if(state_reg == STATE_WAIT) begin
+  //
+  //        // Send Memory Request
+  //        mem_request   = 1'b1;
+  //        mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
+  //        mem_type_d[0] = 3'b0;
+  //        mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset +4;
+  //        mem_type_d[1] = 3'b0;
+  //        // Receive Memory Response
+  //        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
+  //            reg_g_d[counter_G*2]   = mem_resp_data[0];
+  //            reg_g_d[counter_G*2+1] = mem_resp_data[0];
+  //        end
+  //    end
+  //
+  //    // END STATE
+  //    if(state_reg == STATE_END) begin
+  //
+  //        // stop sending Memory Request
+  //        mem_request   = 1'b0;
+  //
+  //        // Send Mapper Request
+  //    end
+  //
+  //    // WRITE STATE
+  //    if(state_reg == STATE_WRITE) begin
+  //
+  //        // Send Memory Request
+  //        mem_request   = 1'b1;
+  //        mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
+  //        mem_data_d[0] = 
+  //        mem_type_d[0] = 3'b1;
+  //        mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset +4;
+  //        mem_data_d[1] = 
+  //        mem_type_d[1] = 3'b1;
+  //
+  //    end
+  end
+  
+    //-----------------------------------------------------------------------
+    // Line Tracing
+    //-----------------------------------------------------------------------
+  
+    `ifndef SYNTHESIS
+  
+    logic [`VC_TRACE_NBITS-1:0] str;
+  
+    `VC_TRACE_BEGIN
+    begin
+  
+      $sformat( str, "%x:%x:%x", pr_req_data, pr_req_addr, pr_req_type );
+      vc_trace.append_val_rdy_str( trace_str, pr_req_val, pr_req_rdy, str );
+  
+      $sformat( str, " | GRS(%x | %x | %d)", base_G, base_R, size );
+      vc_trace.append_str( trace_str, str );
+      vc_trace.append_str( trace_str, " " );
+  
+      vc_trace.append_str( trace_str, "(" );
+  
+      case ( state_reg )
+        STATE_INIT:
+          vc_trace.append_str( trace_str, "INIT" );
+  
+        default:
+          vc_trace.append_str( trace_str, "?  " );
+  
+      endcase
+  
+      vc_trace.append_str( trace_str, ")" );
+  
+      $sformat( str, "%x:%x", pr_resp_data, pr_resp_type );
+      vc_trace.append_val_rdy_str( trace_str, pr_resp_val, pr_resp_rdy, str );
+  
+    end
+    `VC_TRACE_END
+  
+    `endif /* SYNTHESIS */
+  
+  
+  
 endmodule
