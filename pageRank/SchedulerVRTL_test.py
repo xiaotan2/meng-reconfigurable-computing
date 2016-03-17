@@ -16,6 +16,7 @@ from SchedulerVRTL   import SchedulerVRTL
 from pageRankMsg     import pageRankReqMsg, pageRankRespMsg
 
 from numpy           import dot
+
 #-------------------------------------------------------------------------
 # Parameters. User can modify parameters here
 #-------------------------------------------------------------------------
@@ -60,7 +61,7 @@ class TestHarness (Model):
     return s.src.done and s.sink.done
   
   def line_trace(s):
-    return s.src.line_trace() + " > " + s.di.line_trace() + " > " + s.sink.line_trace()
+    return s.src.line_trace() + " > " + s.di.line_trace() + " > " + s.mem.line_trace() + ">" + s.sink.line_trace()
 #s.src.line_trace()       + " > " + \
 #           s.di.line_trace(mapper_num=30, reducer_num=10) + " > " + \
 #           s.sink.line_trace()    
@@ -127,19 +128,37 @@ test_8data = []
 result_8data = []
 for i in xrange(8):
   for j in xrange(8):
-    test_8data.append(i)
+    test_8data.append(i+1)
 
 for i in xrange(8):
-  vectorR.append(i)
+  vectorR.append(i+1)
 
 result_8data = dot(vectorR, vectorToMatrix(test_8data, 8))
+
+
+data_G = []
+
+data_G.append( 0x04030201 )
+data_G.append( 0x08070605 )
+data_G.append( 0x0c0b0a09 )
+data_G.append( 0x100f0e0d )
+data_G.append( 0x14131211 )
+data_G.append( 0x18171615 )
+data_G.append( 0x1c1b1a19 )
+data_G.append( 0x201f1e1d )
+
+data_R = []
+
+data_R.append( 0x04030201 )
+data_R.append( 0x08070605 )
+
 
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
 test_case_table = mk_test_case_table([
-  (                  "data            result       stall  latency  src_delay  sink_delay" ),
-  [ "test8_0x0x0",   test_8data,        1,           0,     0,       0,         0         ],
+  (                  "matrixG     vectorR   result       stall  latency  src_delay  sink_delay" ),
+  [ "test8_0x0x0",     data_G,    data_R,    1,           0,     0,       0,         0         ],
 ])
 
 #-------------------------------------------------------------------------
@@ -148,11 +167,13 @@ test_case_table = mk_test_case_table([
 
 def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
 
-  data       = test_params.data
+  data       = test_params.matrixG
   result     = test_params.result
+  vectorR    = test_params.vectorR
   data_bytes = struct.pack("<{}Q".format(len(data)), *data)
+  vectorR_bytes = struct.pack("<{}Q".format(len(vectorR)), *vectorR)
   
-  pageRank_protocol_msgs = gen_protocol_msgs( len(data), result )
+  pageRank_protocol_msgs = gen_protocol_msgs( 8 , result ) # len(data), result )
   pageRank_reqs          = pageRank_protocol_msgs[::2]
   pageRank_resps         = pageRank_protocol_msgs[1::2]
 
@@ -162,6 +183,8 @@ def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
                     dump_vcd, test_verilog )
 
   th.mem.write_mem( 0x1000, data_bytes )
+  th.mem.write_mem( 0x2000, vectorR_bytes )
+
   run_sim( th, dump_vcd, max_cycles=20 )
 
   # Retrieve result from test memory
