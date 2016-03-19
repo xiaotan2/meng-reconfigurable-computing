@@ -15,7 +15,7 @@ from pclib.ifcs      import MemMsg, MemReqMsg, MemRespMsg
 from pageRankRTL     import pageRankRTL
 from pageRankMsg     import pageRankReqMsg, pageRankRespMsg
 
-from numpy           import dot
+from numpy           import dot, transpose
 #-------------------------------------------------------------------------
 # Parameters. User can modify parameters here
 #-------------------------------------------------------------------------
@@ -89,11 +89,13 @@ def resp( type, data ):
 # Protocol 
 #-------------------------------------------------------------------------
 
-def gen_protocol_msgs( size, result ):
+def gen_protocol_msgs( G_size, R_size, result ):
   return [
     req( 'wr', 1, 0x1000 ), resp( 'wr', 0      ),
     req( 'wr', 2, 0x2000 ), resp( 'wr', 0      ),
-    req( 'wr', 3, size   ), resp( 'wr', 0      ),
+    req( 'wr', 3, 0x3000 ), resp( 'wr', 0      ),
+    req( 'wr', 4, G_size ), resp( 'wr', 0      ),
+    req( 'wr', 5, R_size ), resp( 'wr', 0      ),
     req( 'wr', 0, 0      ), resp( 'wr', 0      ),
     req( 'rd', 0, 0      ), resp( 'rd', result ),
   ]
@@ -119,6 +121,23 @@ def matrixToVector(matrix, length):
       vector.append(matrix[i][j])
   return vector
 
+# combine 4 data into 1
+def fourElementsToOne(data):
+  list_t = []
+  counter = 0
+  data_t = 0
+  for i in xrange(len(data)):
+    if counter == 4:
+      list_t.append(data_t)
+      data_t = data[i]
+      counter = 1
+    else:
+      data_t = (data_t << 8) + data[i]
+      counter += 1
+  if counter == 4:
+    list_t.append(data_t)
+  return list_t
+
 # vector R
 vectorR = []
 
@@ -134,12 +153,21 @@ for i in xrange(8):
 
 result_8data = dot(vectorR, vectorToMatrix(test_8data, 8))
 
+# transpose test_8data, and combine 4 of them into 1
+matrix_test = vectorToMatrix(test_8data, 8)
+matrix_test = transpose(matrix_test)
+test_8data = matrixToVector(matrix_test, 8)
+
+test_8data = fourElementsToOne(test_8data)
+result_8data = fourElementsToOne(result_8data)
+vectorR = fourElementsToOne(vectorR)
+
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
 test_case_table = mk_test_case_table([
-  (                  "data            result       stall  latency  src_delay  sink_delay" ),
-  [ "test8_0x0x0",   test_8data,        1,           0,     0,       0,         0         ],
+  (                  "G_data       R_data         result       stall  latency  src_delay  sink_delay" ),
+  [ "test8_0x0x0",   test_8data,   vectorR,         1,           0,     0,       0,         0         ],
 ])
 
 #-------------------------------------------------------------------------
@@ -148,11 +176,13 @@ test_case_table = mk_test_case_table([
 
 def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
 
-  data       = test_params.data
-  result     = test_params.result
-  data_bytes = struct.pack("<{}Q".format(len(data)), *data)
+  G_data       = test_params.G_data
+  R_data       = test_params.R_data
+  result       = test_params.result
+  G_data_bytes = struct.pack("<{}L".format(len(G_data)), *G_data)
+  R_data_bytes = struct.pack("<{}L".format(len(R_data)), *R_data)
   
-  pageRank_protocol_msgs = gen_protocol_msgs( len(data), result )
+  pageRank_protocol_msgs = gen_protocol_msgs( len(G_data), len(R_data), result )
   pageRank_reqs          = pageRank_protocol_msgs[::2]
   pageRank_resps         = pageRank_protocol_msgs[1::2]
 
@@ -161,13 +191,14 @@ def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
                     test_params.src_delay, test_params.sink_delay,
                     dump_vcd, test_verilog )
 
-  th.mem.write_mem( 0x1000, data_bytes )
+  th.mem.write_mem( 0x1000, G_data_bytes )
+  th.mem.write_mem( 0x2000, R_data_bytes )
   run_sim( th, dump_vcd, max_cycles=MAX_CYCLES )
 
   # Retrieve result from test memory
-  result_bytes = struct.pack("<{}Q".format(len(test_8data)),*result_8data )
-  result_bytes = th.mem.read_mem( 0x2000, len(result_bytes) )
-  result_list  = list(struct.unpack("<{}Q".format(len(result_8data)), buffer(result_bytes)))
+  result_bytes = struct.pack("<{}L".format(len(test_8data)),*result_8data )
+  result_bytes = th.mem.read_mem( 0x3000, len(result_bytes) )
+  result_list  = list(struct.unpack("<{}L".format(len(result_8data)), buffer(result_bytes)))
 
   if len(result_list) != len(result_8data):
     print("FAIL, actual result has size " + str(len(result_list)) + " but should have " + str(len(result_8data)))
