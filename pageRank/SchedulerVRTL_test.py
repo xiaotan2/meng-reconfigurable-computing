@@ -15,7 +15,7 @@ from pclib.ifcs      import MemMsg, MemReqMsg, MemRespMsg
 from SchedulerVRTL   import SchedulerVRTL
 from pageRankMsg     import pageRankReqMsg, pageRankRespMsg
 
-from numpy           import dot
+from numpy           import dot, transpose
 
 #-------------------------------------------------------------------------
 # Parameters. User can modify parameters here
@@ -120,6 +120,23 @@ def matrixToVector(matrix, length):
       vector.append(matrix[i][j])
   return vector
 
+# combine 4 data into 1
+def fourElementsToOne(data):
+  list_t = []
+  counter = 0
+  data_t = 0
+  for i in xrange(len(data)):
+    if counter == 4:
+      list_t.append(data_t)
+      data_t = data[i]
+      counter = 1
+    else:
+      data_t = (data_t << 8) + data[i]
+      counter += 1
+  if counter == 4:
+    list_t.append(data_t)
+  return list_t
+
 # vector R
 vectorR = []
 
@@ -135,30 +152,20 @@ for i in xrange(8):
 
 result_8data = dot(vectorR, vectorToMatrix(test_8data, 8))
 
+matrix_test = vectorToMatrix(test_8data, 8)
+matrix_test = transpose(matrix_test)
+test_8data = matrixToVector(matrix_test, 8)
 
-data_G = []
-
-data_G.append( 0x04030201 )
-data_G.append( 0x08070605 )
-data_G.append( 0x0c0b0a09 )
-data_G.append( 0x100f0e0d )
-data_G.append( 0x14131211 )
-data_G.append( 0x18171615 )
-data_G.append( 0x1c1b1a19 )
-data_G.append( 0x201f1e1d )
-
-data_R = []
-
-data_R.append( 0x04030201 )
-data_R.append( 0x08070605 )
-
+test_8data = fourElementsToOne(test_8data)
+result_8data = fourElementsToOne(result_8data)
+vectorR = fourElementsToOne(vectorR)
 
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
 test_case_table = mk_test_case_table([
-  (                  "matrixG     vectorR   result       stall  latency  src_delay  sink_delay" ),
-  [ "test8_0x0x0",     data_G,    data_R,    1,           0,     0,       0,         0         ],
+  (                  "matrixG        vectorR   result       stall  latency  src_delay  sink_delay" ),
+  [ "test8_0x0x0",    test_8data,    vectorR,    1,           0,     0,       0,         0         ],
 ])
 
 #-------------------------------------------------------------------------
@@ -167,13 +174,13 @@ test_case_table = mk_test_case_table([
 
 def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
 
-  data       = test_params.matrixG
-  result     = test_params.result
-  vectorR    = test_params.vectorR
-  data_bytes = struct.pack("<{}Q".format(len(data)), *data)
-  vectorR_bytes = struct.pack("<{}Q".format(len(vectorR)), *vectorR)
+  G_data       = test_params.matrixG
+  result       = test_params.result
+  R_data       = test_params.vectorR
+  G_data_bytes = struct.pack("<{}L".format(len(G_data)), *G_data)
+  R_data_bytes = struct.pack("<{}L".format(len(R_data)), *R_data)
   
-  pageRank_protocol_msgs = gen_protocol_msgs( 8 , result ) # len(data), result )
+  pageRank_protocol_msgs = gen_protocol_msgs( len(R_data) , result ) # len(data), result )
   pageRank_reqs          = pageRank_protocol_msgs[::2]
   pageRank_resps         = pageRank_protocol_msgs[1::2]
 
@@ -182,15 +189,15 @@ def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
                     test_params.src_delay, test_params.sink_delay,
                     dump_vcd, test_verilog )
 
-  th.mem.write_mem( 0x1000, data_bytes )
-  th.mem.write_mem( 0x2000, vectorR_bytes )
+  th.mem.write_mem( 0x1000, G_data_bytes )
+  th.mem.write_mem( 0x2000, R_data_bytes )
 
-  run_sim( th, dump_vcd, max_cycles=50 )
+  run_sim( th, dump_vcd, max_cycles=MAX_CYCLES )
 
   # Retrieve result from test memory
-  result_bytes = struct.pack("<{}Q".format(len(test_8data)),*result_8data )
+  result_bytes = struct.pack("<{}L".format(len(test_8data)),*result_8data )
   result_bytes = th.mem.read_mem( 0x2000, len(result_bytes) )
-  result_list  = list(struct.unpack("<{}Q".format(len(result_8data)), buffer(result_bytes)))
+  result_list  = list(struct.unpack("<{}L".format(len(result_8data)), buffer(result_bytes)))
 
   if len(result_list) != len(result_8data):
     print("FAIL, actual result has size " + str(len(result_list)) + " but should have " + str(len(result_8data)))
