@@ -185,7 +185,7 @@ def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
   th.mem.write_mem( 0x1000, data_bytes )
   th.mem.write_mem( 0x2000, vectorR_bytes )
 
-  run_sim( th, dump_vcd, max_cycles=20 )
+  run_sim( th, dump_vcd, max_cycles=50 )
 
   # Retrieve result from test memory
   result_bytes = struct.pack("<{}Q".format(len(test_8data)),*result_8data )

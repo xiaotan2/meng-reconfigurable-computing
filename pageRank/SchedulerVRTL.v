@@ -13,6 +13,7 @@ module SchedulerVRTL
 #(
   parameter nbits  = 8,
   parameter nports = 1,
+  parameter bw     = 32,
   parameter n      = 8
 )
 (
@@ -42,7 +43,13 @@ module SchedulerVRTL
   
 );
   // size of G reg array
-  localparam m = 32 / 8;
+  localparam m = nports * bw / nbits;
+
+  // max countR, number of times load partial R
+  localparam max_R = n * nbits / (bw * nports);
+
+  // max countG, number of times load G
+  localparam max_G = n * nbits / (bw * nports);
 
   // pagerankmsg req resp
 
@@ -242,6 +249,15 @@ module SchedulerVRTL
   end
 
   //----------------------------------------------------------------------
+  // Calculation unit
+  //----------------------------------------------------------------------
+
+
+
+
+
+
+  //----------------------------------------------------------------------
   // Counters
   //
   // counter_R iterate R
@@ -285,13 +301,13 @@ module SchedulerVRTL
 
   logic [31:0] addr_R;
 
-  assign addr_R = count_R*4 + base_R; 
+  assign addr_R = count_R*(bw/nbits) + base_R; 
 
   // Address to read/write G
 
   logic [31:0] addr_G;
 
-  assign addr_G = count_G*4 + base_G;
+  assign addr_G = count_G*n + base_G;
  
   //----------------------------------------------------------------------
   // State Definitions
@@ -362,12 +378,12 @@ module SchedulerVRTL
 
     case ( state_reg )
 
-      STATE_INIT:  if ( go                )   state_next = STATE_READR; 
-      STATE_READR:                            state_next = STATE_WAITR;
-      STATE_WAITR: if ( mem_resp_go       )   state_next = STATE_READG;
-      STATE_READG:                            state_next = STATE_WAITG;
-      STATE_WAITG: if ( mem_resp_go && count_G == 32'd8  )   state_next = STATE_READG;
-                   else if ( mem_resp_go  )   state_next = STATE_INIT;
+      STATE_INIT:  if ( go                )              state_next = STATE_READR; 
+      STATE_READR: if ( mem_req_go        )              state_next = STATE_WAITR;
+      STATE_WAITR: if ( mem_resp_go       )              state_next = STATE_READG;
+      STATE_READG: if ( mem_req_go        )              state_next = STATE_WAITG;
+      STATE_WAITG: if ( mem_resp_go && count_G == n  )   state_next = STATE_INIT;
+                   else if ( mem_resp_go  )              state_next = STATE_READG;
 
 //      STATE_START:  if ( counter_G == 3'd3  )  state_next = STATE_RUN;
 //      STATE_RUN:    if ( red_resp_val  )       state_next = STATE_WAIT;
@@ -510,10 +526,9 @@ module SchedulerVRTL
  
           // Receive Memory Response
           if( mem_resp_go ) begin
-               reg_r0_en[0] = 1'b1;
-               reg_r0_en[1] = 1'b1;
-               reg_r0_en[2] = 1'b1;
-               reg_r0_en[3] = 1'b1;
+            for ( i = 0; i < m; i = i + 1 ) begin
+              reg_r0_en[i] = 1'b1;
+            end
           end
       end
  
@@ -542,10 +557,9 @@ module SchedulerVRTL
  
           // Receive Memory Response
           if( mem_resp_go ) begin
-               reg_g_en[0] = 1'b1;
-               reg_g_en[1] = 1'b1;
-               reg_g_en[2] = 1'b1;
-               reg_g_en[3] = 1'b1;
+            for ( i = 0; i < m; i = i + 1 ) begin
+              reg_g_en[i] = 1'b1;
+            end
           end
       end
  
@@ -696,13 +710,13 @@ module SchedulerVRTL
  //     vc_trace.append_str( trace_str, str );
  //     vc_trace.append_str( trace_str, " " );
  
-      $sformat( str, "req(%x | %x | %x | %d)", mem_req_val, mem_req_rdy, mem_req_addr, mem_req_data );
-      vc_trace.append_str( trace_str, str );
-      vc_trace.append_str( trace_str, " " );
-   
-      $sformat( str, "resp(%x | %x | %d)", mem_resp_val, mem_resp_rdy, mem_resp_data );
-      vc_trace.append_str( trace_str, str );
-      vc_trace.append_str( trace_str, " " );
+//      $sformat( str, "req(%x | %x | %x | %d)", mem_req_val, mem_req_rdy, mem_req_addr, mem_req_data );
+//      vc_trace.append_str( trace_str, str );
+//      vc_trace.append_str( trace_str, " " );
+//   
+//      $sformat( str, "resp(%x | %x | %d)", mem_resp_val, mem_resp_rdy, mem_resp_data );
+//      vc_trace.append_str( trace_str, str );
+//      vc_trace.append_str( trace_str, " " );
 
       $sformat( str, "%x:%x", pr_resp_data, pr_resp_type );
       vc_trace.append_val_rdy_str( trace_str, pr_resp_val, pr_resp_rdy, str );
