@@ -81,4 +81,36 @@ endmodule
 
 
 
+module mux8 
+#(
+  parameter nbits     = 32
+)
+(
+  input  [      2:0]  sel,
+  input  [nbits-1:0] in_0,
+  input  [nbits-1:0] in_1,
+  input  [nbits-1:0] in_2,
+  input  [nbits-1:0] in_3,
+  input  [nbits-1:0] in_4,
+  input  [nbits-1:0] in_5,
+  input  [nbits-1:0] in_6,
+  input  [nbits-1:0] in_7,
+  output [nbits-1:0] out
+);
+
+  always_comb begin
+    case( sel )
+      3'd0: out = in_0;
+      3'd1: out = in_1;
+      3'd2: out = in_2;
+      3'd3: out = in_3;
+      3'd4: out = in_4;
+      3'd5: out = in_5;
+      3'd6: out = in_6;
+      3'd7: out = in_7;
+    endcase   
+  end
+
+endmodule
+
 
