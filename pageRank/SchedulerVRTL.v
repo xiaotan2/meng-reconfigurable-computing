@@ -98,7 +98,7 @@ module SchedulerVRTL
 
 
   //------------------------------------------------------------------------
-  // split 32-bit data to 4 8-bit data
+  // split mem resp 32-bit data to 4 8-bit data
   //------------------------------------------------------------------------
 
   logic [nbits-1:0] data[0:m-1];
@@ -107,6 +107,27 @@ module SchedulerVRTL
   assign data[1] = mem_resp_data[15: 8];  
   assign data[2] = mem_resp_data[23:16];  
   assign data[3] = mem_resp_data[31:24];  
+
+
+  //------------------------------------------------------------------------
+  // combine r1 8 8-bit data into 2 32 bit data for mem req 
+  //------------------------------------------------------------------------
+
+  logic [31:0] r1_memreq[max_R];
+ 
+  assign r1_memreq[0] = {reg_r1[3], reg_r1[2], reg_r1[1], reg_r1[0]};
+  assign r1_memreq[1] = {reg_r1[7], reg_r1[6], reg_r1[5], reg_r1[4]};
+
+  logic r1_memreq_sel;
+
+  mux2 #(32) r1_memreq_mux
+  (
+    .in_0  ( r1_memreq[0] ),
+    .in_1  ( r1_memreq[1] ),
+    .sel   ( r1_memreq_sel),
+    .out   ( mem_req_data )
+  );
+
 
   //-------------------------------------------------------------------------
   // Pack pageRank Request Messages
@@ -358,10 +379,9 @@ module SchedulerVRTL
     STATE_WAITR ,
     STATE_READG , 
     STATE_WAITG ,
-    STATE_RUN   , 
-    STATE_WAIT  , 
-    STATE_END   , 
-    STATE_WRITE  
+    STATE_END   ,
+    STATE_WRITE ,  
+    STATE_WAITW  
   } state_t;
 
 
@@ -420,50 +440,21 @@ module SchedulerVRTL
       STATE_READR: if ( mem_req_go        )              state_next = STATE_WAITR;
       STATE_WAITR: if ( mem_resp_go       )              state_next = STATE_READG;
       STATE_READG: if ( mem_req_go        )              state_next = STATE_WAITG;
-      STATE_WAITG: if ( mem_resp_go && count_G == n && count_R == max_R )   state_next = STATE_INIT;
+      STATE_WAITG: if ( mem_resp_go && count_G == n && count_R == max_R )   state_next = STATE_END;
                    else if ( mem_resp_go && count_G == n )                  state_next = STATE_READR;
                    else if ( mem_resp_go  )                                 state_next = STATE_READG;
+      STATE_END  :                                                          state_next = STATE_WRITE;
+      STATE_WRITE: if ( mem_req_go        )                                 state_next = STATE_WAITW;
+      STATE_WAITW: if ( mem_resp_go && count_R == max_R  )                  state_next = STATE_INIT;
+                   else if ( mem_resp_go  )                                 state_next = STATE_WRITE;
 
-//      STATE_START:  if ( counter_G == 3'd3  )  state_next = STATE_RUN;
-//      STATE_RUN:    if ( red_resp_val  )       state_next = STATE_WAIT;
-//      STATE_WAIT:   if ( resp_go   )           state_next = STATE_END;  
-//      STATE_END:    if ( resp_go   )           state_next = STATE_WRITE;
-//      STATE_WRITE:  if ( resp_go   )           state_next = STATE_SOURCE;
+
       default:    state_next = 'x;
 
     endcase
 
   end
 
-  //logic         mem_request;
-  //logic [31:0]  mem_addr_d;
-  //logic [31:0]  mem_data_d;
-  //logic         mem_type_d;
-  //
-  //
-  //// combination block interacting with memory
-  //always_comb begin
-  //
-  //    // Memory Request
-  //    if(mem_request == 1'b1) begin
-  //        mem_req_val  = 1'b1;
-  //        mem_req_addr = mem_addr_d;
-  //        mem_req_type = mem_type_d;
-  //        mem_req_data = mem_data_d;
-  //    end
-  //    else begin
-  //        mem_req_val  = 1'b0;
-  //        mem_req_addr = 32'b0;
-  //        mem_req_type = 1'b0;
-  //        mem_req_data = 32'b0;
-  //    end
-  //
-  //    // Memory Response
-  //    if(mem_resp_val[0] == 1'b1 && mem_resp_val[1] == 1'b1) begin
-  //        mem_resp_rdy[0] = 1'b1;
-  //        mem_resp_rdy[1] = 1'b1;
-  //    end
-  //end
   
   //----------------------------------------------------------------------
   // State Outputs
@@ -562,7 +553,7 @@ module SchedulerVRTL
   
       if(state_reg == STATE_WAITR) begin
           
-          // Send Memory Request
+          // Receive Memory Response
           mem_resp_rdy  = 1'b1;
           mem_resp_type = mem_rd;
  
@@ -597,7 +588,7 @@ module SchedulerVRTL
   
       if(state_reg == STATE_WAITG) begin
           
-          // Send Memory Request
+          // Receive Memory Response
           mem_resp_rdy  = 1'b1;
           mem_resp_type = mem_rd;
  
@@ -609,7 +600,41 @@ module SchedulerVRTL
           end
       end
  
+
+      ///////////////////// END STATE //////////////////////////////////////
+  
+      if(state_reg == STATE_END) begin
+        // load last result to r1_reg       
+        reg_r1_en[count_G-32'b1] = 1'b1;
+        // clear counter R for write back result to memory  
+        count_R_clear = 1'b1; 
+      end
+
+      ///////////////////// WRITE STATE //////////////////////////////////////
+  
+      if(state_reg == STATE_WRITE) begin
+          
+          // Send Memory Request
+          mem_req_val  = 1'b1;
+          mem_req_addr = addr_R;
+          mem_req_type = mem_wr;
+
+          r1_memreq_sel = count_R[0];
+
+          if ( mem_req_go ) begin 
+            count_R_en = 1'b1;
+          end
+
+      end
  
+      ///////////////////// WAITW STATE //////////////////////////////////////
+  
+      if(state_reg == STATE_WAITW) begin
+          // Receive Memory Response
+          mem_resp_rdy  = 1'b1;
+          mem_resp_type = mem_wr;
+      end
+
   //    // START STATE
   //    if(state_reg == STATE_START) begin
   //
@@ -728,7 +753,7 @@ module SchedulerVRTL
 //      vc_trace.append_str( trace_str, str );
 //      vc_trace.append_str( trace_str, " " );
   
-      $sformat( str, "(%d)", count_G );
+      $sformat( str, "(%d)", count_R );
       vc_trace.append_str( trace_str, str );
       vc_trace.append_str( trace_str, " " );
 
@@ -751,6 +776,9 @@ module SchedulerVRTL
         STATE_WAITR:  vc_trace.append_str( trace_str, "WAITR" );
         STATE_READG:  vc_trace.append_str( trace_str, "READG" );
         STATE_WAITG:  vc_trace.append_str( trace_str, "WAITG" );
+        STATE_END:    vc_trace.append_str( trace_str, "END  " );
+        STATE_WRITE:  vc_trace.append_str( trace_str, "WRITE" );
+        STATE_WAITW:  vc_trace.append_str( trace_str, "WAITW" );
   
         default:
           vc_trace.append_str( trace_str, "?  " );

@@ -14,7 +14,7 @@ class SchedulerVRTL( VerilogModel ):
 
   # Constructor
 
-  def __init__( s, nbits = 8, nports = 1, n = 8 ):
+  def __init__( s, nbits = 8, nports = 1, bw = 32, n = 8,  ):
 
     #---------------------------------------------------------------------------
     # Interface
@@ -35,6 +35,7 @@ class SchedulerVRTL( VerilogModel ):
     s.set_params({
       'nbits'  : nbits,
       'nports' : nports,
+      'bw'     : bw,
       'n'      : n
     })
 
