@@ -138,22 +138,35 @@ module SchedulerVRTL
   logic         base_G_en;
   logic         base_R_en;
   logic         size_en;
+ 
+  regEN #(32) base_G_reg
+  (
+    .clk    ( clk         ),
+    .reset  ( reset       ),
+    .reg_d  ( pr_req_data ),
+    .reg_q  ( base_G      ),
+    .reg_en ( base_G_en   )
+  );
+   
+  regEN #(32) base_R_reg
+  (
+    .clk    ( clk         ),
+    .reset  ( reset       ),
+    .reg_d  ( pr_req_data ),
+    .reg_q  ( base_R      ),
+    .reg_en ( base_R_en   )
+  );
+   
   
-  
-  always_ff @ (posedge clk) begin
-    if ( reset ) begin 
-      base_G <= 32'b0;
-      base_R <= 32'b0;
-      size   <= 32'b0;
-    end    
-    else if ( base_G_en )
-      base_G <= pr_req_data;
-    else if ( base_R_en )
-      base_R <= pr_req_data;
-    else if ( size_en   )
-      size   <= pr_req_data;    
-  end
-  
+  regEN #(32) size_reg
+  (
+    .clk    ( clk         ),
+    .reset  ( reset       ),
+    .reg_d  ( pr_req_data ),
+    .reg_q  ( size        ),
+    .reg_en ( size_en     )
+  );
+   
 
   //----------------------------------------------------------------------- 
   // Two set of registers to store R
