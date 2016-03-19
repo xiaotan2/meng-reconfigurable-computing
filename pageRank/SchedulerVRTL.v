@@ -124,7 +124,7 @@ module SchedulerVRTL
   (
     .in_0  ( r1_memreq[0] ),
     .in_1  ( r1_memreq[1] ),
-    .sel   ( r1_memreq_sel),
+    .sel   ( count_R[0]   ),
     .out   ( mem_req_data )
   );
 
@@ -154,10 +154,12 @@ module SchedulerVRTL
   
   logic [31:0]  base_G;
   logic [31:0]  base_R;
+  logic [31:0]  base_W;
   logic [31:0]  size;
   
   logic         base_G_en;
   logic         base_R_en;
+  logic         base_W_en;
   logic         size_en;
  
   regEN #(32) base_G_reg
@@ -178,7 +180,15 @@ module SchedulerVRTL
     .reg_en ( base_R_en   )
   );
    
-  
+   regEN #(32) base_W_reg
+  (
+    .clk    ( clk         ),
+    .reset  ( reset       ),
+    .reg_d  ( pr_req_data ),
+    .reg_q  ( base_W      ),
+    .reg_en ( base_W_en   )
+  );
+ 
   regEN #(32) size_reg
   (
     .clk    ( clk         ),
@@ -496,6 +506,7 @@ module SchedulerVRTL
       for ( i = 0; i < m; i = i + 1 ) begin
         reg_g_en[i] = 1'b0;
       end
+
       /////////////////////////  INIT STATE    ///////////////////////////////////
   
       if( state_reg == STATE_INIT ) begin
@@ -618,8 +629,6 @@ module SchedulerVRTL
           mem_req_val  = 1'b1;
           mem_req_addr = addr_R;
           mem_req_type = mem_wr;
-
-          r1_memreq_sel = count_R[0];
 
           if ( mem_req_go ) begin 
             count_R_en = 1'b1;
