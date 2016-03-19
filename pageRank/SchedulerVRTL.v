@@ -196,7 +196,7 @@ module SchedulerVRTL
 
   // r0 reg muxes
   logic mux_r0_sel [0:m-1];
-  logic [nbits-1:0] sum;
+  logic [nbits-1:0] res;
 
   always_comb begin
     for ( i = 0; i < m; i = i + 1 ) begin
@@ -204,7 +204,7 @@ module SchedulerVRTL
         reg_r0_d[i] = data[i];
       end
       else begin
-        reg_r0_d[i] = sum;
+        reg_r0_d[i] = res;
       end
     end
   end
@@ -250,7 +250,7 @@ module SchedulerVRTL
   //----------------------------------------------------------------------
 
   logic [nbits-1:0] wire_r [0:m-1];
-
+  logic [nbits-1:0] sum;
 
   assign sum = wire_r[0]*reg_g[0] + wire_r[1]*reg_g[1] + wire_r[2]*reg_g[2] + wire_r[3]*reg_g[3];
 
@@ -260,11 +260,27 @@ module SchedulerVRTL
       wire_r[i] = reg_r0[i];
 
     for ( i = 0; i < n; i = i + 1 )
-      reg_r1_d[i] = sum;
+      reg_r1_d[i] = res;
 
   end
 
-  
+  logic [nbits-1:0] r1_rd_mux_out;
+
+  mux8 #(nbits) r1_rd_mux
+  ( 
+    .in_0         (  reg_r1[0]     ),
+    .in_1         (  reg_r1[1]     ),
+    .in_2         (  reg_r1[2]     ),
+    .in_3         (  reg_r1[3]     ),
+    .in_4         (  reg_r1[4]     ),
+    .in_5         (  reg_r1[5]     ),
+    .in_6         (  reg_r1[6]     ),
+    .in_7         (  reg_r1[7]     ),
+    .sel          (  count_G[2:0]-3'b1 ),
+    .out          (  r1_rd_mux_out )
+  );
+
+  assign res = (count_R > 32'b1) ? (sum + r1_rd_mux_out) : sum;
 
   //----------------------------------------------------------------------
   // Counters
