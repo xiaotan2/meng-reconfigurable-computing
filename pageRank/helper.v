@@ -60,6 +60,34 @@ module counter
 
 endmodule
 
+module counterSET 
+#(
+  parameter nbits     = 32,
+  parameter increment = 1
+)
+(
+  input clk,
+  input reset,
+
+  input              count_clear,
+  input              count_set,
+  input              count_en,
+  output [nbits-1:0] count_out
+);
+
+  always_ff @ (posedge clk) begin
+    if ( reset || count_clear)  
+      count_out <= 0;
+    else if ( count_set )
+      count_out <= 1;
+    else if ( count_en )
+      count_out <= count_out + increment ;
+    else
+      count_out <= count_out;    
+  end
+
+endmodule
+
 //----------------------------------------------------------------------
 // Muxes
 //----------------------------------------------------------------------
