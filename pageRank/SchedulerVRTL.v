@@ -42,6 +42,8 @@ module SchedulerVRTL
   output logic                                          mem_resp_rdy
   
 );
+  localparam max_cycles = 4;
+
   // size of G reg array
   localparam m = nports * bw / nbits;
 
@@ -154,12 +156,10 @@ module SchedulerVRTL
   
   logic [31:0]  base_G;
   logic [31:0]  base_R;
-  logic [31:0]  base_W;
   logic [31:0]  size;
   
   logic         base_G_en;
   logic         base_R_en;
-  logic         base_W_en;
   logic         size_en;
  
   regEN #(32) base_G_reg
@@ -180,15 +180,6 @@ module SchedulerVRTL
     .reg_en ( base_R_en   )
   );
    
-   regEN #(32) base_W_reg
-  (
-    .clk    ( clk         ),
-    .reset  ( reset       ),
-    .reg_d  ( pr_req_data ),
-    .reg_q  ( base_W      ),
-    .reg_en ( base_W_en   )
-  );
- 
   regEN #(32) size_reg
   (
     .clk    ( clk         ),
@@ -239,12 +230,12 @@ module SchedulerVRTL
   end
 
   // r0 reg muxes
-  logic mux_r0_sel [0:m-1];
+  logic mux_r0_sel;
   logic [nbits-1:0] res;
 
   always_comb begin
-    for ( i = 0; i < m; i = i + 1 ) begin
-      if ( mux_r0_sel[i] == 1'b0 ) begin
+    for ( i = 0; i < n; i = i + 1 ) begin
+      if ( mux_r0_sel == 1'b0 ) begin
         reg_r0_d[i] = data[i];
       end
       else begin
@@ -298,14 +289,53 @@ module SchedulerVRTL
 
   assign sum = wire_r[0]*reg_g[0] + wire_r[1]*reg_g[1] + wire_r[2]*reg_g[2] + wire_r[3]*reg_g[3];
 
+  mux4_2sel #(nbits) r_reg_04
+  (
+    .sel_0   ( ~count_R[0] ),
+    .sel_1   ( count_W[0] ),
+    .in_0    ( reg_r0[0]  ),
+    .in_1    ( reg_r0[4]  ),
+    .in_2    ( reg_r1[0]  ),
+    .in_3    ( reg_r1[4]  ),
+    .out     ( wire_r[0]  )
+  );
+
+  mux4_2sel #(nbits) r_reg_15
+  (
+    .sel_0   ( ~count_R[0] ),
+    .sel_1   ( count_W[0] ),
+    .in_0    ( reg_r0[1]  ),
+    .in_1    ( reg_r0[5]  ),
+    .in_2    ( reg_r1[1]  ),
+    .in_3    ( reg_r1[5]  ),
+    .out     ( wire_r[1]  )
+  );
+
+  mux4_2sel #(nbits) r_reg_26
+  (
+    .sel_0   ( ~count_R[0] ),
+    .sel_1   ( count_W[0] ),
+    .in_0    ( reg_r0[2]  ),
+    .in_1    ( reg_r0[6]  ),
+    .in_2    ( reg_r1[2]  ),
+    .in_3    ( reg_r1[6]  ),
+    .out     ( wire_r[2]  )
+  );
+
+  mux4_2sel #(nbits) r_reg_37
+  (
+    .sel_0   ( ~count_R[0] ),
+    .sel_1   ( count_W[0] ),
+    .in_0    ( reg_r0[3]  ),
+    .in_1    ( reg_r0[7]  ),
+    .in_2    ( reg_r1[3]  ),
+    .in_3    ( reg_r1[7]  ),
+    .out     ( wire_r[3]  )
+  );
 
   always_comb begin
-    for ( i = 0; i < m; i = i + 1 )
-      wire_r[i] = reg_r0[i];
-
     for ( i = 0; i < n; i = i + 1 )
       reg_r1_d[i] = res;
-
   end
 
   logic [nbits-1:0] r1_rd_mux_out;
@@ -324,7 +354,33 @@ module SchedulerVRTL
     .out          (  r1_rd_mux_out )
   );
 
-  assign res = (count_R > 32'b1) ? (sum + r1_rd_mux_out) : sum;
+  logic [nbits-1:0] r0_rd_mux_out;
+
+  mux8 #(nbits) r0_rd_mux
+  ( 
+    .in_0         (  reg_r0[0]     ),
+    .in_1         (  reg_r0[1]     ),
+    .in_2         (  reg_r0[2]     ),
+    .in_3         (  reg_r0[3]     ),
+    .in_4         (  reg_r0[4]     ),
+    .in_5         (  reg_r0[5]     ),
+    .in_6         (  reg_r0[6]     ),
+    .in_7         (  reg_r0[7]     ),
+    .sel          (  count_G[2:0]-3'b1 ),
+    .out          (  r0_rd_mux_out )
+  );
+
+  logic [nbits-1:0] r_rd_mux_out;
+
+  mux2 #(nbits) r_rd_mux
+  (
+    .in_0         (  r1_rd_mux_out ),
+    .in_1         (  r0_rd_mux_out ),
+    .sel          (  count_W[0]    ),
+    .out          (  r_rd_mux_out  )
+  );
+
+  assign res = (count_R > 32'b1) ? (sum + r_rd_mux_out) : sum;
 
   //----------------------------------------------------------------------
   // Counters
@@ -361,6 +417,19 @@ module SchedulerVRTL
     .count_out   (count_G      )    
   ); 
 
+  logic        count_W_clear;
+  logic        count_W_en;
+  logic [31:0] count_W;
+
+  counter #(32, 1) counter_W
+  (
+    .clk         (clk          ),
+    .reset       (reset        ),
+    .count_clear (count_W_clear),
+    .count_en    (count_W_en   ),
+    .count_out   (count_W      )    
+  ); 
+
 
   //----------------------------------------------------------------------- 
   // Address Calculation for R and G
@@ -389,7 +458,12 @@ module SchedulerVRTL
     STATE_WAITR ,
     STATE_READG , 
     STATE_WAITG ,
-    STATE_END   ,
+    STATE_R1END ,
+
+    STATE_CREADG,
+    STATE_CWAITG,
+    STATE_R0END ,
+
     STATE_WRITE ,  
     STATE_WAITW  
   } state_t;
@@ -450,10 +524,16 @@ module SchedulerVRTL
       STATE_READR: if ( mem_req_go        )              state_next = STATE_WAITR;
       STATE_WAITR: if ( mem_resp_go       )              state_next = STATE_READG;
       STATE_READG: if ( mem_req_go        )              state_next = STATE_WAITG;
-      STATE_WAITG: if ( mem_resp_go && count_G == n && count_R == max_R )   state_next = STATE_END;
+      STATE_WAITG: if ( mem_resp_go && count_G == n && count_R == max_R )   state_next = STATE_R1END;
                    else if ( mem_resp_go && count_G == n )                  state_next = STATE_READR;
                    else if ( mem_resp_go  )                                 state_next = STATE_READG;
-      STATE_END  :                                                          state_next = STATE_WRITE;
+      STATE_R1END:                                                          state_next = STATE_WRITE;
+
+      STATE_CREADG: if ( mem_req_go        )                                 state_next = STATE_CWAITG;
+      STATE_CWAITG: if ( mem_resp_go && count_G == n && count_R == max_R )   state_next = STATE_R0END;
+                    else if ( mem_resp_go  )                                 state_next = STATE_CREADG;
+      STATE_R0END:                                                           state_next = STATE_WRITE;    
+
       STATE_WRITE: if ( mem_req_go        )                                 state_next = STATE_WAITW;
       STATE_WAITW: if ( mem_resp_go && count_R == max_R  )                  state_next = STATE_INIT;
                    else if ( mem_resp_go  )                                 state_next = STATE_WRITE;
@@ -499,6 +579,9 @@ module SchedulerVRTL
       count_G_en    = 1'b0;
       count_G_clear = 1'b0;
 
+      count_W_en    = 1'b0;
+      count_W_clear = 1'b0;
+
       for ( i = 0; i < n; i = i + 1 ) begin
         reg_r0_en[i] = 1'b0;
         reg_r1_en[i] = 1'b0;
@@ -506,6 +589,8 @@ module SchedulerVRTL
       for ( i = 0; i < m; i = i + 1 ) begin
         reg_g_en[i] = 1'b0;
       end
+
+      mux_r0_sel    = 1'd1;
 
       /////////////////////////  INIT STATE    ///////////////////////////////////
   
@@ -519,6 +604,8 @@ module SchedulerVRTL
           if ( go ) begin
             // clear count_R
             count_R_clear = 1'b1; 
+            // clear count_W
+            count_W_clear = 1'b1;
           end
           else if( load_base_G ) begin
             base_G_en  = 1'b1;
@@ -568,10 +655,19 @@ module SchedulerVRTL
           mem_resp_rdy  = 1'b1;
           mem_resp_type = mem_rd;
  
+          mux_r0_sel = 1'b0;
+
           // Receive Memory Response
           if( mem_resp_go ) begin
-            for ( i = 0; i < m; i = i + 1 ) begin
-              reg_r0_en[i] = 1'b1;
+            if ( count_R[0] == 1'd1 ) begin
+              for ( i = 0; i < m; i = i + 1 ) begin
+                reg_r0_en[i] = 1'b1;
+              end
+            end
+            else begin
+              for ( i = m; i < n; i = i + 1 ) begin
+                reg_r0_en[i] = 1'b1;
+              end
             end
           end
       end
@@ -612,13 +708,69 @@ module SchedulerVRTL
       end
  
 
-      ///////////////////// END STATE //////////////////////////////////////
+      ///////////////////// R1END STATE //////////////////////////////////////
   
-      if(state_reg == STATE_END) begin
+      if(state_reg == STATE_R1END) begin
         // load last result to r1_reg       
         reg_r1_en[count_G-32'b1] = 1'b1;
         // clear counter R for write back result to memory  
         count_R_clear = 1'b1; 
+        count_G_clear = 1'b1;
+
+        // increment counter W by 1 
+        count_W_en    = 1'b1;
+      end
+
+      ///////////////////// CREADG STATE //////////////////////////////////////
+  
+      if(state_reg == STATE_CREADG) begin
+          
+          // Send Memory Request
+          mem_req_val   = 1'b1;
+          mem_req_addr  = addr_G;
+          mem_req_type  = mem_rd;
+
+          if ( mem_req_go ) begin 
+              count_G_en  = 1'b1;
+
+             if ( count_G > 32'b0 ) 
+               reg_r0_en[count_G-32'b1] = 1'b1;
+
+          end
+
+      end
+ 
+      ///////////////////// CWAITG STATE //////////////////////////////////////
+  
+      if(state_reg == STATE_CWAITG) begin
+          
+          // Receive Memory Response
+          mem_resp_rdy  = 1'b1;
+          mem_resp_type = mem_rd;
+ 
+          // Receive Memory Response
+          if( mem_resp_go ) begin
+            for ( i = 0; i < m; i = i + 1 ) begin
+              reg_g_en[i] = 1'b1;
+            end
+            
+            if ( count_G == n )
+              count_R_en = 1'b1;
+          end
+      end
+ 
+
+      ///////////////////// R0END STATE //////////////////////////////////////
+  
+      if(state_reg == STATE_R0END) begin
+        // load last result to r0_reg       
+        reg_r0_en[count_G-32'b1] = 1'b1;
+
+        // clear counter R for write back result to memory  
+        count_R_clear = 1'b1; 
+        count_G_clear = 1'b1; 
+        // increment counter W by 1 
+        count_W_en    = 1'b1;
       end
 
       ///////////////////// WRITE STATE //////////////////////////////////////
@@ -644,104 +796,6 @@ module SchedulerVRTL
           mem_resp_type = mem_wr;
       end
 
-  //    // START STATE
-  //    if(state_reg == STATE_START) begin
-  //
-  //        // Send Memory Request
-  //        mem_request   = 1'b1;
-  //        mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
-  //        mem_type_d[0] = 3'b0;
-  //        mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset +4;
-  //        mem_type_d[1] = 3'b0;
-  //        // Receive Memory Response
-  //        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
-  //            if(counter_R == 3'd3) begin
-  //                reg_r0_d[counter_R*2]   = mem_resp_data[0];
-  //                reg_r0_d[counter_R*2+1] = mem_resp_data[1];
-  //                counter_R_d             = counter_R + 3'b1;
-  //            end
-  //            else begin
-  //                reg_g_d[counter_G*2]   = mem_resp_data[0];
-  //                reg_g_d[counter_G*2+1] = mem_resp_data[0];
-  //                counter_G_d            = counter_G + 3'b1;
-  //                counter_R_d            = 3'b0;
-  //            end
-  //        end
-  //    end
-  //
-  //    // RUN STATE
-  //    if(state_reg == STATE_RUN) begin
-  //
-  //        // Send Memory Request
-  //        mem_request   = 1'b1;
-  //        if(counter_G_d == 3'd3) begin
-  //            mem_addr_d[0] = base_G + counter_C*offset;
-  //            mem_addr_d[1] = base_G + counter_C*offset + 4;
-  //        end
-  //        else begin
-  //            mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
-  //            mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset + 4;
-  //        end
-  //        mem_type_d[0] = 3'b0;
-  //        mem_type_d[1] = 3'b0;
-  //        // Receive Memory Response
-  //        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
-  //            if(counter_G == 3'd3) begin
-  //                reg_g_d[counter_G*2]   = mem_resp_data[0];
-  //                reg_g_d[counter_G*2+1] = mem_resp_data[1];
-  //                counter_G_d            = 3'b0;
-  //            end
-  //            else begin
-  //                reg_g_d[counter_G*2]   = mem_resp_data[0];
-  //                reg_g_d[counter_G*2+1] = mem_resp_data[0];
-  //                counter_G_d            = counter_G + 3'b1;
-  //                counter_R_d            = 3'b0;
-  //            end
-  //            reg_g_d[counter_G*2]   = mem_resp_data[0];
-  //            reg_g_d[counter_G*2+1] = mem_resp_data[0];
-  //        end
-  //        // Send Mapper Request Message
-  //
-  //    end
-  //
-  //    // WAIT STATE
-  //    if(state_reg == STATE_WAIT) begin
-  //
-  //        // Send Memory Request
-  //        mem_request   = 1'b1;
-  //        mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
-  //        mem_type_d[0] = 3'b0;
-  //        mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset +4;
-  //        mem_type_d[1] = 3'b0;
-  //        // Receive Memory Response
-  //        if(mem_resp_val[0] == 1'b1 && mem_resp_val[1]) begin
-  //            reg_g_d[counter_G*2]   = mem_resp_data[0];
-  //            reg_g_d[counter_G*2+1] = mem_resp_data[0];
-  //        end
-  //    end
-  //
-  //    // END STATE
-  //    if(state_reg == STATE_END) begin
-  //
-  //        // stop sending Memory Request
-  //        mem_request   = 1'b0;
-  //
-  //        // Send Mapper Request
-  //    end
-  //
-  //    // WRITE STATE
-  //    if(state_reg == STATE_WRITE) begin
-  //
-  //        // Send Memory Request
-  //        mem_request   = 1'b1;
-  //        mem_addr_d[0] = base_G + 8*counter_G + counter_C*offset;
-  //        mem_data_d[0] = 
-  //        mem_type_d[0] = 3'b1;
-  //        mem_addr_d[1] = base_G + 8*counter_G + counter_C*offset +4;
-  //        mem_data_d[1] = 
-  //        mem_type_d[1] = 3'b1;
-  //
-  //    end
   end
   
     //-----------------------------------------------------------------------
@@ -762,17 +816,21 @@ module SchedulerVRTL
 //      vc_trace.append_str( trace_str, str );
 //      vc_trace.append_str( trace_str, " " );
   
-      $sformat( str, "(%d)", count_R );
+//      $sformat( str, "(%d)", count_R );
+//      vc_trace.append_str( trace_str, str );
+//      vc_trace.append_str( trace_str, " " );
+      $sformat( str, "(%x|%x|%x)", count_W, count_R, wire_r[0] );
       vc_trace.append_str( trace_str, str );
       vc_trace.append_str( trace_str, " " );
 
-      $sformat( str, "R0(%x|%x|%x|%x)", reg_r0[0], reg_r0[1], reg_r0[2], reg_r0[3] );
+      $sformat( str, "R0(%x|%x|%x|%x|%x|%x|%x|%x)", reg_r0[0], reg_r0[1], reg_r0[2], reg_r0[3], reg_r0[4], reg_r0[5], reg_r0[6], reg_r0[7] );
       vc_trace.append_str( trace_str, str );
       vc_trace.append_str( trace_str, " " );
-      $sformat( str, "R1(%d|%d|%d|%d|%d|%d|%d|%d)", reg_r1[0], reg_r1[1], reg_r1[2], reg_r1[3], reg_r1[4], reg_r1[5], reg_r1[6], reg_r1[7] );
+      $sformat( str, "R1(%x|%x|%x|%x|%x|%x|%x|%x)", reg_r1[0], reg_r1[1], reg_r1[2], reg_r1[3], reg_r1[4], reg_r1[5], reg_r1[6], reg_r1[7] );
       vc_trace.append_str( trace_str, str );
       vc_trace.append_str( trace_str, " " );
       $sformat( str, "G(%x|%x|%x|%x)", reg_g[0], reg_g[1], reg_g[2], reg_g[3] );
+
       vc_trace.append_str( trace_str, str );
       vc_trace.append_str( trace_str, " " );
 
@@ -780,17 +838,22 @@ module SchedulerVRTL
       vc_trace.append_str( trace_str, "(" );
   
       case ( state_reg )
-        STATE_INIT:   vc_trace.append_str( trace_str, "INIT " );
-        STATE_READR:  vc_trace.append_str( trace_str, "READR" );
-        STATE_WAITR:  vc_trace.append_str( trace_str, "WAITR" );
-        STATE_READG:  vc_trace.append_str( trace_str, "READG" );
-        STATE_WAITG:  vc_trace.append_str( trace_str, "WAITG" );
-        STATE_END:    vc_trace.append_str( trace_str, "END  " );
-        STATE_WRITE:  vc_trace.append_str( trace_str, "WRITE" );
-        STATE_WAITW:  vc_trace.append_str( trace_str, "WAITW" );
+        STATE_INIT:   vc_trace.append_str( trace_str, "INIT  " );
+        STATE_READR:  vc_trace.append_str( trace_str, "READR " );
+        STATE_WAITR:  vc_trace.append_str( trace_str, "WAITR " );
+        STATE_READG:  vc_trace.append_str( trace_str, "READG " );
+        STATE_WAITG:  vc_trace.append_str( trace_str, "WAITG " );
+        STATE_R1END:  vc_trace.append_str( trace_str, "R1END " );   
+     
+        STATE_CREADG: vc_trace.append_str( trace_str, "CREADG" );
+        STATE_CWAITG: vc_trace.append_str( trace_str, "CWAITG" );
+        STATE_R0END:  vc_trace.append_str( trace_str, "R0END " );
+
+        STATE_WRITE:  vc_trace.append_str( trace_str, "WRITE " );
+        STATE_WAITW:  vc_trace.append_str( trace_str, "WAITW " );
   
         default:
-          vc_trace.append_str( trace_str, "?  " );
+          vc_trace.append_str( trace_str, "?   " );
   
       endcase
   

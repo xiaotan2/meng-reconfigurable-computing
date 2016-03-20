@@ -166,6 +166,7 @@ vectorR = fourElementsToOne(vectorR)
 test_case_table = mk_test_case_table([
   (                  "matrixG        vectorR   result       stall  latency  src_delay  sink_delay" ),
   [ "test8_0x0x0",    test_8data,    vectorR,    1,           0,     0,       0,         0         ],
+#  [ "test8_delay",    test_8data,    vectorR,    1,         0.3,     3,       2,         3         ],
 ])
 
 #-------------------------------------------------------------------------
@@ -195,7 +196,7 @@ def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
   run_sim( th, dump_vcd, max_cycles=MAX_CYCLES )
 
   # Retrieve result from test memory
-  result_bytes = struct.pack("<{}L".format(len(test_8data)),*result_8data )
+  result_bytes = struct.pack("<{}L".format(len(result_8data)),*result_8data )
   result_bytes = th.mem.read_mem( 0x2000, len(result_bytes) )
   result_list  = list(struct.unpack("<{}L".format(len(result_8data)), buffer(result_bytes)))
 

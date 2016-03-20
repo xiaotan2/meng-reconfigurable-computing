@@ -114,3 +114,28 @@ module mux8
 endmodule
 
 
+module mux4_2sel
+#(
+  parameter nbits     = 32
+)
+(
+  input             sel_0,
+  input             sel_1,
+  input  [nbits-1:0] in_0,
+  input  [nbits-1:0] in_1,
+  input  [nbits-1:0] in_2,
+  input  [nbits-1:0] in_3,
+  output [nbits-1:0] out
+);
+
+  logic [nbits-1:0] mux0_out;
+  logic [nbits-1:0] mux1_out;
+
+  assign mux0_out = (sel_0 == 1'b0) ? in_0     : in_1;
+  assign mux1_out = (sel_0 == 1'b0) ? in_2     : in_3;
+  assign out      = (sel_1 == 1'b0) ? mux0_out : mux1_out;
+
+endmodule
+
+
+
