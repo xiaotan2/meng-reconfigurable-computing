@@ -26,7 +26,7 @@ TRAIN_SIZE  = 1800
 MAPPER_NUM  = 30
 REDUCER_NUM = 10 
 k           = 3
-MAX_CYCLES  = 100
+MAX_CYCLES  = 500
 
 #-------------------------------------------------------------------------
 # TestHarness

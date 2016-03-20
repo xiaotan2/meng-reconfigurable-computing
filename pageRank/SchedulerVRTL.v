@@ -42,7 +42,7 @@ module SchedulerVRTL
   output logic                                          mem_resp_rdy
   
 );
-  localparam max_cycles = 4;
+  localparam max_cycles = 1;
 
   // size of G reg array
   localparam m = nports * bw / nbits;
@@ -115,18 +115,24 @@ module SchedulerVRTL
   // combine r1 8 8-bit data into 2 32 bit data for mem req 
   //------------------------------------------------------------------------
 
+  logic [31:0] r0_memreq[max_R];
+ 
+  assign r0_memreq[0] = {reg_r0[3], reg_r0[2], reg_r0[1], reg_r0[0]};
+  assign r0_memreq[1] = {reg_r0[7], reg_r0[6], reg_r0[5], reg_r0[4]};
+
   logic [31:0] r1_memreq[max_R];
  
   assign r1_memreq[0] = {reg_r1[3], reg_r1[2], reg_r1[1], reg_r1[0]};
   assign r1_memreq[1] = {reg_r1[7], reg_r1[6], reg_r1[5], reg_r1[4]};
 
-  logic r1_memreq_sel;
-
-  mux2 #(32) r1_memreq_mux
+  mux4_2sel #(32) r_memreq_mux
   (
-    .in_0  ( r1_memreq[0] ),
-    .in_1  ( r1_memreq[1] ),
-    .sel   ( count_R[0]   ),
+    .sel_0 ( count_R[0]   ),
+    .sel_1 ( count_W[0]   ),
+    .in_0  ( r0_memreq[0] ),
+    .in_1  ( r0_memreq[1] ),
+    .in_2  ( r1_memreq[0] ),
+    .in_3  ( r1_memreq[1] ),
     .out   ( mem_req_data )
   );
 
@@ -523,16 +529,17 @@ module SchedulerVRTL
 
     case ( state_reg )
 
-      STATE_INIT:  if ( go                )              state_next = STATE_READR; 
+      STATE_INIT:   if ( go                )                                 state_next = STATE_READR; 
 
       // load r0 write r1
-      STATE_READR: if ( mem_req_go        )              state_next = STATE_WAITR;
-      STATE_WAITR: if ( mem_resp_go       )              state_next = STATE_READG;
-      STATE_READG: if ( mem_req_go        )              state_next = STATE_WAITG;
-      STATE_WAITG: if ( mem_resp_go && count_G == n && count_R == max_R )   state_next = STATE_R1END;
-                   else if ( mem_resp_go && count_G == n )                  state_next = STATE_READR;
-                   else if ( mem_resp_go  )                                 state_next = STATE_READG;
-      STATE_R1END:                                                          state_next = STATE_CREADG;
+      STATE_READR:  if ( mem_req_go        )                                 state_next = STATE_WAITR;
+      STATE_WAITR:  if ( mem_resp_go       )                                 state_next = STATE_READG;
+      STATE_READG:  if ( mem_req_go        )                                 state_next = STATE_WAITG;
+      STATE_WAITG:  if ( mem_resp_go && count_G == n && count_R == max_R )   state_next = STATE_R1END;
+                    else if ( mem_resp_go && count_G == n )                  state_next = STATE_READR;
+                    else if ( mem_resp_go  )                                 state_next = STATE_READG;
+      STATE_R1END:  if ( count_W == max_cycles-1 )                           state_next = STATE_WRITE;
+                    else                                                     state_next = STATE_CREADG;
 
       // read r1 write r0
       STATE_CREADG: if ( mem_req_go        )                                 state_next = STATE_CWAITG;
@@ -540,12 +547,13 @@ module SchedulerVRTL
                     else if ( mem_resp_go && count_G == n )                  state_next = STATE_CLEARG;
                     else if ( mem_resp_go  )                                 state_next = STATE_CREADG;
       STATE_CLEARG:                                                          state_next = STATE_CREADG;
-      STATE_R0END:                                                           state_next = STATE_WRITE;    
+      STATE_R0END:  if ( count_W == max_cycles-1)                            state_next = STATE_WRITE;    
+                    else                                                     state_next = STATE_CREADG;
 
-
-      STATE_WRITE: if ( mem_req_go        )                                 state_next = STATE_WAITW;
-      STATE_WAITW: if ( mem_resp_go && count_R == max_R  )                  state_next = STATE_INIT;
-                   else if ( mem_resp_go  )                                 state_next = STATE_WRITE;
+      // write back results
+      STATE_WRITE:  if ( mem_req_go        )                                 state_next = STATE_WAITW;
+      STATE_WAITW:  if ( mem_resp_go && count_R == max_R  )                  state_next = STATE_INIT;
+                    else if ( mem_resp_go  )                                 state_next = STATE_WRITE;
 
 
       default:    state_next = 'x;
@@ -723,8 +731,14 @@ module SchedulerVRTL
       if(state_reg == STATE_R1END) begin
         // load last result to r1_reg       
         reg_r1_en[count_G-32'b1] = 1'b1;
-        // set counter R be 1  
-        count_R_set   = 1'b1; 
+
+        if ( count_W == max_cycles-1 )
+          // clear counter R for write
+          count_R_clear = 1'b1;
+        else 
+          // set counter R be 1  
+          count_R_set   = 1'b1; 
+
         count_G_clear = 1'b1;
 
         // increment counter W by 1 
@@ -743,8 +757,12 @@ module SchedulerVRTL
           if ( mem_req_go ) begin 
               count_G_en  = 1'b1;
 
-             if ( count_G > 32'b0 )
-               reg_r0_en[count_G-32'b1] = 1'b1;
+             if ( count_G > 32'b0 ) begin
+               if ( count_W[0] == 1'b1 )
+                 reg_r0_en[count_G-32'b1] = 1'b1;
+               else
+                 reg_r1_en[count_G-32'b1] = 1'b1;
+             end
 
           end
 
@@ -771,18 +789,32 @@ module SchedulerVRTL
   
       if(state_reg == STATE_CLEARG) begin
         count_R_en = 1'b1;
-        reg_r0_en[n-1] = 1'b1;
         count_G_clear = 1'b1;
+
+        if ( count_W[0] == 1'b1 )
+          reg_r0_en[n-1] = 1'b1;
+        else
+          reg_r1_en[n-1] = 1'b1;
       end
 
       ///////////////////// R0END STATE //////////////////////////////////////
   
       if(state_reg == STATE_R0END) begin
         // load last result to r0_reg       
-        reg_r0_en[n-1] = 1'b1;
+        if ( count_W[0] == 1'b1 )
+          reg_r0_en[n-1] = 1'b1;
+        else
+          reg_r1_en[n-1] = 1'b1;
        
-        // clear counter R for write back result to memory  
-        count_R_clear = 1'b1; 
+        if ( count_W == max_cycles-1 )
+          // clear counter R for write
+          count_R_clear = 1'b1;
+        else 
+          // set counter R be 1  
+          count_R_set   = 1'b1; 
+
+        count_G_clear = 1'b1;
+
         // increment counter W by 1 
         count_W_en    = 1'b1;
       end
@@ -830,10 +862,6 @@ module SchedulerVRTL
 //      vc_trace.append_str( trace_str, str );
 //      vc_trace.append_str( trace_str, " " );
   
-      $sformat( str, "(%x)", res );
-      vc_trace.append_str( trace_str, str );
-      vc_trace.append_str( trace_str, " " );
-
       $sformat( str, "(%x|%x|%x)", count_W, count_R, count_G );
       vc_trace.append_str( trace_str, str );
       vc_trace.append_str( trace_str, " " );
@@ -841,16 +869,18 @@ module SchedulerVRTL
       $sformat( str, "R0(%x|%x|%x|%x|%x|%x|%x|%x)", reg_r0[0], reg_r0[1], reg_r0[2], reg_r0[3], reg_r0[4], reg_r0[5], reg_r0[6], reg_r0[7] );
       vc_trace.append_str( trace_str, str );
       vc_trace.append_str( trace_str, " " );
-//      $sformat( str, "R1(%x|%x|%x|%x|%x|%x|%x|%x)", reg_r1[0], reg_r1[1], reg_r1[2], reg_r1[3], reg_r1[4], reg_r1[5], reg_r1[6], reg_r1[7] );
-//      vc_trace.append_str( trace_str, str );
-//      vc_trace.append_str( trace_str, " " );
+
+      $sformat( str, "R1(%x|%x|%x|%x|%x|%x|%x|%x)", reg_r1[0], reg_r1[1], reg_r1[2], reg_r1[3], reg_r1[4], reg_r1[5], reg_r1[6], reg_r1[7] );
+      vc_trace.append_str( trace_str, str );
+      vc_trace.append_str( trace_str, " " );
+
 //      $sformat( str, "G(%x|%x|%x|%x)", reg_g[0], reg_g[1], reg_g[2], reg_g[3] );
 //      vc_trace.append_str( trace_str, str );
 //      vc_trace.append_str( trace_str, " " );
-
-      $sformat( str, "r(%x|%x|%x|%x)", wire_r[0], wire_r[1], wire_r[2], wire_r[3] );
-      vc_trace.append_str( trace_str, str );
-      vc_trace.append_str( trace_str, " " );
+//
+//      $sformat( str, "r(%x|%x|%x|%x)", wire_r[0], wire_r[1], wire_r[2], wire_r[3] );
+//      vc_trace.append_str( trace_str, str );
+//      vc_trace.append_str( trace_str, " " );
 
       vc_trace.append_str( trace_str, "(" );
   
