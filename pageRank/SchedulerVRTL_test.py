@@ -90,11 +90,12 @@ def resp( type, data ):
 # Protocol 
 #-------------------------------------------------------------------------
 
-def gen_protocol_msgs( size, result ):
+def gen_protocol_msgs( size, result, runs ):
   return [
     req( 'wr', 1, 0x1000 ), resp( 'wr', 0      ),
     req( 'wr', 2, 0x2000 ), resp( 'wr', 0      ),
     req( 'wr', 3, size   ), resp( 'wr', 0      ),
+    req( 'wr', 4, runs   ), resp( 'wr', 0      ),
     req( 'wr', 0, 0      ), resp( 'wr', 0      ),
     req( 'rd', 0, 0      ), resp( 'rd', result ),
   ]
@@ -137,35 +138,58 @@ def fourElementsToOne(data):
     list_t.append(data_t)
   return list_t
 
-# vector R
-vectorR = []
+random.seed()
 
-# test data 8x8 matrix
-test_8data = []
-result_8data = []
+# vector R
+vectorR_1run = []
+for i in xrange(8):
+  vectorR_1run.append(random.randint(1,10))
+
+# test data 8x8 matrix with 1 run
+test_8data_1run = []
+result_8data_1run = []
 for i in xrange(8):
   for j in xrange(8):
-    test_8data.append(i+1)
+    test_8data_1run.append(random.randint(1,10))
 
+vectorR_4run = []
 for i in xrange(8):
-  vectorR.append(i+1)
+  vectorR_4run.append(random.randint(0,2))
 
-result_8data = dot(vectorR, vectorToMatrix(test_8data, 8))
+test_8data_4run = []
+result_8data_4run = []
+for i in xrange(8):
+  for j in xrange(8):
+    test_8data_4run.append(random.randint(0,2))
 
-matrix_test = vectorToMatrix(test_8data, 8)
+result_8data_1run = dot(vectorR_1run, vectorToMatrix(test_8data_1run, 8))
+result_8data_4run = dot(vectorR_4run, vectorToMatrix(test_8data_4run, 8))
+for i in xrange(3):
+  result_8data_4run = dot(result_8data_4run, vectorToMatrix(test_8data_4run, 8))
+
+matrix_test = vectorToMatrix(test_8data_1run, 8)
 matrix_test = transpose(matrix_test)
-test_8data = matrixToVector(matrix_test, 8)
+test_8data_1run = matrixToVector(matrix_test, 8)
 
-test_8data = fourElementsToOne(test_8data)
-result_8data = fourElementsToOne(result_8data)
-vectorR = fourElementsToOne(vectorR)
+matrix_test = vectorToMatrix(test_8data_4run, 8)
+matrix_test = transpose(matrix_test)
+test_8data_4run = matrixToVector(matrix_test, 8)
+
+test_8data_1run = fourElementsToOne(test_8data_1run)
+result_8data_1run = fourElementsToOne(result_8data_1run)
+vectorR_1run = fourElementsToOne(vectorR_1run)
+
+test_8data_4run = fourElementsToOne(test_8data_4run)
+result_8data_4run = fourElementsToOne(result_8data_4run)
+vectorR_4run = fourElementsToOne(vectorR_4run)
 
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
 test_case_table = mk_test_case_table([
-  (                  "matrixG        vectorR   result       stall  latency  src_delay  sink_delay" ),
-  [ "test8_0x0x0",    test_8data,    vectorR,    1,           0,     0,       0,         0         ],
+  (                       "matrixG            vectorR      result   runs   stall  latency  src_delay  sink_delay" ),
+  [ "test8_1_0x0x0",    test_8data_1run,    vectorR_1run,    1,      1,      0,     0,       0,         0         ],
+  [ "test8_4_0x0x0",    test_8data_4run,    vectorR_4run,    1,      4,      0,     0,       0,         0         ],
 #  [ "test8_delay",    test_8data,    vectorR,    1,         0.3,     3,       2,         3         ],
 ])
 
@@ -178,10 +202,11 @@ def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
   G_data       = test_params.matrixG
   result       = test_params.result
   R_data       = test_params.vectorR
+  runs         = test_params.runs
   G_data_bytes = struct.pack("<{}L".format(len(G_data)), *G_data)
   R_data_bytes = struct.pack("<{}L".format(len(R_data)), *R_data)
   
-  pageRank_protocol_msgs = gen_protocol_msgs( len(R_data) , result ) # len(data), result )
+  pageRank_protocol_msgs = gen_protocol_msgs( len(R_data) , runs, result ) # len(data), result )
   pageRank_reqs          = pageRank_protocol_msgs[::2]
   pageRank_resps         = pageRank_protocol_msgs[1::2]
 
@@ -196,18 +221,18 @@ def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
   run_sim( th, dump_vcd, max_cycles=MAX_CYCLES )
 
   # Retrieve result from test memory
-  result_bytes = struct.pack("<{}L".format(len(result_8data)),*result_8data )
+  result_bytes = struct.pack("<{}L".format(len(result_8data_4run)),*result_8data_4run )
   result_bytes = th.mem.read_mem( 0x2000, len(result_bytes) )
-  result_list  = list(struct.unpack("<{}L".format(len(result_8data)), buffer(result_bytes)))
+  result_list  = list(struct.unpack("<{}L".format(len(result_8data_4run)), buffer(result_bytes)))
 
-  if len(result_list) != len(result_8data):
-    print("FAIL, actual result has size " + str(len(result_list)) + " but should have " + str(len(result_8data)))
+  if len(result_list) != len(result_8data_4run):
+    print("FAIL, actual result has size " + str(len(result_list)) + " but should have " + str(len(result_8data_4run)))
     return
 
   noError = True
   for i in xrange(len(result_list)):
-    if result_list[i] != result_8data[i]:
-      print("FAIL, actual result " + str(result_list[i]) + " but should have " + str(result_8data[i]))
+    if result_list[i] != result_8data_4run[i]:
+      print("FAIL, actual result " + str(result_list[i]) + " but should have " + str(result_8data_4run[i]))
       noError = False
 
   if noError:
