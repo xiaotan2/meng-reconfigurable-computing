@@ -26,7 +26,7 @@ TRAIN_SIZE  = 1800
 MAPPER_NUM  = 30
 REDUCER_NUM = 10 
 k           = 3
-MAX_CYCLES  = 80
+MAX_CYCLES  = 150
 
 #-------------------------------------------------------------------------
 # TestHarness
@@ -133,7 +133,7 @@ def fourElementsToOne(data):
       data_t = data[i]
       counter = 1
     else:
-      data_t = (data_t << 8) + data[i]
+      data_t = data_t + (data[i] << (8 * counter))
       counter += 1
   if counter == 4:
     list_t.append(data_t)
@@ -144,24 +144,24 @@ random.seed()
 # vector R
 vectorR_1run = []
 for i in xrange(8):
-  vectorR_1run.append(random.randint(1,10))
+  vectorR_1run.append(random.randint(1,3))
 
 # test data 8x8 matrix with 1 run
 test_8data_1run = []
 result_8data_1run = []
 for i in xrange(8):
   for j in xrange(8):
-    test_8data_1run.append(random.randint(1,10))
+    test_8data_1run.append(random.randint(1,3))
 
 vectorR_4run = []
 for i in xrange(8):
-  vectorR_4run.append(random.randint(0,2))
+  vectorR_4run.append(random.randint(0,1))
 
 test_8data_4run = []
 result_8data_4run = []
 for i in xrange(8):
   for j in xrange(8):
-    test_8data_4run.append(random.randint(0,2))
+    test_8data_4run.append(random.randint(0,1))
 
 result_8data_1run = dot(vectorR_1run, vectorToMatrix(test_8data_1run, 8))
 result_8data_4run = dot(vectorR_4run, vectorToMatrix(test_8data_4run, 8))
@@ -189,10 +189,10 @@ vectorR_4run = fourElementsToOne(vectorR_4run)
 #-------------------------------------------------------------------------
 test_case_table = mk_test_case_table([
   (                       "matrixG            vectorR      result   runs   stall  latency  src_delay  sink_delay" ),
-  [ "test8_1_0x0x0",    test_8data_1run,    vectorR_1run,    1,      1,      0,     0,       0,         0         ],
-  [ "test8_2_0x0x0",    test_8data_1run,    vectorR_1run,    1,      2,      0,     0,       0,         0         ],
-  [ "test8_3_0x0x0",    test_8data_1run,    vectorR_1run,    1,      3,      0,     0,       0,         0         ],
-#  [ "test8_4_0x0x0",    test_8data_4run,    vectorR_4run,    1,      4,      0,     0,       0,         0         ],
+#  [ "test8_1_0x0x0",    test_8data_1run,    vectorR_1run,    1,      1,      0,     0,       0,         0         ],
+#  [ "test8_2_0x0x0",    test_8data_1run,    vectorR_1run,    1,      2,      0,     0,       0,         0         ],
+#  [ "test8_3_0x0x0",    test_8data_1run,    vectorR_1run,    1,      3,      0,     0,       0,         0         ],
+  [ "test8_4_0x0x0",    test_8data_4run,    vectorR_4run,    1,      4,      0,     0,       0,         0         ],
 #  [ "test8_delay",    test_8data,    vectorR,    1,         0.3,     3,       2,         3         ],
 ])
 
@@ -255,7 +255,7 @@ def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
     noError = True
     for i in xrange(len(result_list)):
       if result_list[i] != result_8data_4run[i]:
-        print("FAIL, actual result " + str(result_list[i]) + " but should have " + str(result_8data_4run[i]))
+        print("FAIL, actual result " + hex(result_list[i]) + " but should have " + hex(result_8data_4run[i]))
         noError = False
   
     if noError:
