@@ -483,6 +483,7 @@ module SchedulerVRTL_alt
     STATE_CLEARG,
     STATE_R0END ,
 
+    STATE_FWRITE,
     STATE_WRITE ,  
     STATE_WAITW  
   } state_t;
@@ -549,7 +550,7 @@ module SchedulerVRTL_alt
                     else if ( mem_req_go   )                                 state_next = STATE_READG;
       STATE_WAITG:  if ( mem_resp_go && count_R == max_R     )               state_next = STATE_R1END;
                     else if ( mem_resp_go  )                                 state_next = STATE_READR;
-      STATE_R1END:  if ( count_W == nround-32'b1 )                           state_next = STATE_WRITE;
+      STATE_R1END:  if ( count_W == nround-32'b1 )                           state_next = STATE_FWRITE;
                     else                                                     state_next = STATE_CREADG;
 
       // read r1 write r0
@@ -562,9 +563,10 @@ module SchedulerVRTL_alt
                     else                                                     state_next = STATE_CREADG;
 
       // write back results
-      STATE_WRITE:  if ( mem_req_go        )                                 state_next = STATE_WAITW;
-      STATE_WAITW:  if ( mem_resp_go && count_R == max_R  )                  state_next = STATE_INIT;
-                    else if ( mem_resp_go  )                                 state_next = STATE_WRITE;
+      STATE_FWRITE: if ( mem_req_go        )                                 state_next = STATE_WRITE;
+      STATE_WRITE:  if ( mem_req_go && count_R == max_R-1 )                  state_next = STATE_INIT;
+                    else if ( mem_req_go   )                                 state_next = STATE_WRITE;
+      STATE_WAITW:  if ( mem_resp_go       )                                 state_next = STATE_INIT;
 
 
       default:    state_next = 'x;
@@ -630,7 +632,10 @@ module SchedulerVRTL_alt
   
         pr_req_rdy  = pr_resp_rdy;
         pr_resp_val = pr_req_val;
-  
+ 
+        mem_resp_rdy = mem_resp_val;
+        mem_resp_type = mem_wr;
+ 
         // Write tpye
         if ( pr_req_type == pr_wr ) begin
           if ( go ) begin
@@ -864,9 +869,9 @@ module SchedulerVRTL_alt
         count_W_en    = 1'b1;
       end
 
-      ///////////////////// WRITE STATE //////////////////////////////////////
+      ///////////////////// FWRITE STATE //////////////////////////////////////
   
-      if(state_reg == STATE_WRITE) begin
+      if(state_reg == STATE_FWRITE) begin
           
           // Send Memory Request
           mem_req_val  = 1'b1;
@@ -877,6 +882,24 @@ module SchedulerVRTL_alt
             count_R_en = 1'b1;
           end
 
+      end
+ 
+      ///////////////////// WRITE STATE //////////////////////////////////////
+  
+      if(state_reg == STATE_WRITE) begin
+          
+          // Send Memory Request
+          mem_req_val  = mem_resp_val;
+          mem_req_addr = addr_R;
+          mem_req_type = mem_wr;
+
+          if ( mem_req_go ) begin 
+            count_R_en = 1'b1;
+          end
+
+          // Receive Memory Response
+          mem_resp_rdy  = 1'b1;
+          mem_resp_type = mem_wr;
       end
  
       ///////////////////// WAITW STATE //////////////////////////////////////
@@ -947,6 +970,7 @@ module SchedulerVRTL_alt
         STATE_CLEARG: vc_trace.append_str( trace_str, "CLEARG" );
         STATE_R0END:  vc_trace.append_str( trace_str, "R0END " );
 
+        STATE_FWRITE: vc_trace.append_str( trace_str, "FWRITE" );
         STATE_WRITE:  vc_trace.append_str( trace_str, "WRITE " );
         STATE_WAITW:  vc_trace.append_str( trace_str, "WAITW " );
   
