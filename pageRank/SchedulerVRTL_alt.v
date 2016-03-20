@@ -478,6 +478,7 @@ module SchedulerVRTL_alt
     STATE_WAITG ,
     STATE_R1END ,
 
+    STATE_FCREADG,
     STATE_CREADG,
     STATE_CWAITG,
     STATE_CLEARG,
@@ -545,22 +546,25 @@ module SchedulerVRTL_alt
       // load r0 write r1
       STATE_READR:  if ( mem_req_go        )                                 state_next = STATE_WAITR;
       STATE_WAITR:  if ( mem_resp_go       )                                 state_next = STATE_FREADG;
+
       STATE_FREADG: if ( mem_req_go        )                                 state_next = STATE_READG;
       STATE_READG:  if ( mem_req_go && count_G == size-32'd1 )               state_next = STATE_WAITG;
                     else if ( mem_req_go   )                                 state_next = STATE_READG;
       STATE_WAITG:  if ( mem_resp_go && count_R == max_R     )               state_next = STATE_R1END;
                     else if ( mem_resp_go  )                                 state_next = STATE_READR;
       STATE_R1END:  if ( count_W == nround-32'b1 )                           state_next = STATE_FWRITE;
-                    else                                                     state_next = STATE_CREADG;
+                    else                                                     state_next = STATE_FCREADG;
 
       // read r1 write r0
-      STATE_CREADG: if ( mem_req_go        )                                 state_next = STATE_CWAITG;
-      STATE_CWAITG: if ( mem_resp_go && count_G == n && count_R == max_R )   state_next = STATE_R0END;
-                    else if ( mem_resp_go && count_G == n )                  state_next = STATE_CLEARG;
-                    else if ( mem_resp_go  )                                 state_next = STATE_CREADG;
-      STATE_CLEARG:                                                          state_next = STATE_CREADG;
-      STATE_R0END:  if ( count_W == nround-32'b1)                            state_next = STATE_WRITE;    
-                    else                                                     state_next = STATE_CREADG;
+      STATE_FCREADG:if ( mem_req_go        )                                 state_next = STATE_CREADG;
+      STATE_CREADG: if ( mem_req_go && count_G == size-32'd1      )          state_next = STATE_CWAITG;
+                    else if ( mem_req_go   )                                 state_next = STATE_CREADG;
+      STATE_CWAITG: if ( mem_resp_go && count_R == max_R )                   state_next = STATE_R0END;
+                    else if ( mem_resp_go  )                                 state_next = STATE_CLEARG;
+
+      STATE_CLEARG:                                                          state_next = STATE_FCREADG;
+      STATE_R0END:  if ( count_W == nround-32'b1)                            state_next = STATE_FWRITE;    
+                    else                                                     state_next = STATE_FCREADG;
 
       // write back results
       STATE_FWRITE: if ( mem_req_go        )                                 state_next = STATE_WRITE;
@@ -795,9 +799,9 @@ module SchedulerVRTL_alt
         count_W_en    = 1'b1;
       end
 
-      ///////////////////// CREADG STATE //////////////////////////////////////
+      ///////////////////// FCREADG STATE //////////////////////////////////////
   
-      if(state_reg == STATE_CREADG) begin
+      if(state_reg == STATE_FCREADG) begin
           
           // Send Memory Request
           mem_req_val   = 1'b1;
@@ -806,16 +810,41 @@ module SchedulerVRTL_alt
 
           if ( mem_req_go ) begin 
               count_G_en  = 1'b1;
+          end
 
-             if ( count_G > 32'b0 ) begin
+      end
+
+      ///////////////////// CREADG STATE //////////////////////////////////////
+  
+      if(state_reg == STATE_CREADG) begin
+          
+          // Send Memory Request
+          mem_req_val   = mem_resp_val;
+          mem_req_addr  = addr_G;
+          mem_req_type  = mem_rd;
+
+          if ( mem_req_go ) begin 
+              count_G_en  = 1'b1;
+
+             if ( count_G > 32'b1 ) begin
                if ( count_W[0] == 1'b1 )
-                 reg_r0_en[count_G-32'b1] = 1'b1;
+                 reg_r0_en[count_G-32'd2] = 1'b1;
                else
-                 reg_r1_en[count_G-32'b1] = 1'b1;
+                 reg_r1_en[count_G-32'd2] = 1'b1;
              end
 
           end
 
+          // Receive Memory Response
+          mem_resp_rdy  = 1'b1;
+          mem_resp_type = mem_rd;
+ 
+          // Receive Memory Response
+          if( mem_resp_go ) begin
+            for ( i = 0; i < m; i = i + 1 ) begin
+              reg_g_en[i] = 1'b1;
+            end
+          end
       end
  
       ///////////////////// CWAITG STATE //////////////////////////////////////
@@ -831,6 +860,13 @@ module SchedulerVRTL_alt
             for ( i = 0; i < m; i = i + 1 ) begin
               reg_g_en[i] = 1'b1;
             end
+            if ( count_G > 32'b1 ) begin
+               if ( count_W[0] == 1'b1 )
+                 reg_r0_en[count_G-32'd2] = 1'b1;
+               else
+                 reg_r1_en[count_G-32'd2] = 1'b1;
+            end
+            count_G_en = 1'b1;
           end
       end
  
@@ -842,9 +878,9 @@ module SchedulerVRTL_alt
         count_G_clear = 1'b1;
 
         if ( count_W[0] == 1'b1 )
-          reg_r0_en[n-1] = 1'b1;
+          reg_r0_en[count_G-32'd2] = 1'b1;
         else
-          reg_r1_en[n-1] = 1'b1;
+          reg_r1_en[count_G-32'd2] = 1'b1;
       end
 
       ///////////////////// R0END STATE //////////////////////////////////////
@@ -852,9 +888,9 @@ module SchedulerVRTL_alt
       if(state_reg == STATE_R0END) begin
         // load last result to r0_reg       
         if ( count_W[0] == 1'b1 )
-          reg_r0_en[n-1] = 1'b1;
+          reg_r0_en[count_G-32'd2] = 1'b1;
         else
-          reg_r1_en[n-1] = 1'b1;
+          reg_r1_en[count_G-32'd2] = 1'b1;
        
         if ( count_W == nround-32'b1 )
           // clear counter R for write
@@ -934,9 +970,9 @@ module SchedulerVRTL_alt
       vc_trace.append_str( trace_str, str );
       vc_trace.append_str( trace_str, " " );
 
-      $sformat( str, "(%x|%x|%x)", count_W[3:0], count_R[3:0], count_G[3:0] );
-      vc_trace.append_str( trace_str, str );
-      vc_trace.append_str( trace_str, " " );
+//      $sformat( str, "(%x|%x|%x)", count_W[3:0], count_R[3:0], count_G[3:0] );
+//      vc_trace.append_str( trace_str, str );
+//      vc_trace.append_str( trace_str, " " );
 
       $sformat( str, "R0(%x|%x|%x|%x|%x|%x|%x|%x)", reg_r0[0], reg_r0[1], reg_r0[2], reg_r0[3], reg_r0[4], reg_r0[5], reg_r0[6], reg_r0[7] );
       vc_trace.append_str( trace_str, str );
@@ -954,32 +990,33 @@ module SchedulerVRTL_alt
 //      vc_trace.append_str( trace_str, str );
 //      vc_trace.append_str( trace_str, " " );
 
-      vc_trace.append_str( trace_str, "(" );
+//      vc_trace.append_str( trace_str, "(" );
   
       case ( state_reg )
-        STATE_INIT:   vc_trace.append_str( trace_str, "INIT  " );
-        STATE_READR:  vc_trace.append_str( trace_str, "READR " );
-        STATE_WAITR:  vc_trace.append_str( trace_str, "WAITR " );
-        STATE_FREADG: vc_trace.append_str( trace_str, "FREADG" );
-        STATE_READG:  vc_trace.append_str( trace_str, "READG " );
-        STATE_WAITG:  vc_trace.append_str( trace_str, "WAITG " );
-        STATE_R1END:  vc_trace.append_str( trace_str, "R1END " );   
+        STATE_INIT:   vc_trace.append_str( trace_str, "INIT   " );
+        STATE_READR:  vc_trace.append_str( trace_str, "READR  " );
+        STATE_WAITR:  vc_trace.append_str( trace_str, "WAITR  " );
+        STATE_FREADG: vc_trace.append_str( trace_str, "FREADG " );
+        STATE_READG:  vc_trace.append_str( trace_str, "READG  " );
+        STATE_WAITG:  vc_trace.append_str( trace_str, "WAITG  " );
+        STATE_R1END:  vc_trace.append_str( trace_str, "R1END  " );   
      
-        STATE_CREADG: vc_trace.append_str( trace_str, "CREADG" );
-        STATE_CWAITG: vc_trace.append_str( trace_str, "CWAITG" );
-        STATE_CLEARG: vc_trace.append_str( trace_str, "CLEARG" );
-        STATE_R0END:  vc_trace.append_str( trace_str, "R0END " );
+        STATE_FCREADG:vc_trace.append_str( trace_str, "FCREADG" );
+        STATE_CREADG: vc_trace.append_str( trace_str, "CREADG " );
+        STATE_CWAITG: vc_trace.append_str( trace_str, "CWAITG " );
+        STATE_CLEARG: vc_trace.append_str( trace_str, "CLEARG " );
+        STATE_R0END:  vc_trace.append_str( trace_str, "R0END  " );
 
-        STATE_FWRITE: vc_trace.append_str( trace_str, "FWRITE" );
-        STATE_WRITE:  vc_trace.append_str( trace_str, "WRITE " );
-        STATE_WAITW:  vc_trace.append_str( trace_str, "WAITW " );
+        STATE_FWRITE: vc_trace.append_str( trace_str, "FWRITE " );
+        STATE_WRITE:  vc_trace.append_str( trace_str, "WRITE  " );
+        STATE_WAITW:  vc_trace.append_str( trace_str, "WAITW  " );
   
         default:
-          vc_trace.append_str( trace_str, "?   " );
+          vc_trace.append_str( trace_str, "?    " );
   
       endcase
   
-      vc_trace.append_str( trace_str, ")" );
+  //    vc_trace.append_str( trace_str, ")" );
 
  //     $sformat( str, "(%d | %x)", count_R, addr_R );
  //     vc_trace.append_str( trace_str, str );
