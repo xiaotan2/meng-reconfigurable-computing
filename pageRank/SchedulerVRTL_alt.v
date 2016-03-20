@@ -472,7 +472,6 @@ module SchedulerVRTL_alt
   typedef enum logic [$clog2(16)-1:0] {
     STATE_INIT  , 
     STATE_READR , 
-    STATE_WAITR ,
     STATE_FREADG,
     STATE_READG , 
     STATE_WAITG ,
@@ -544,8 +543,7 @@ module SchedulerVRTL_alt
       STATE_INIT:   if ( go                )                                 state_next = STATE_READR; 
 
       // load r0 write r1
-      STATE_READR:  if ( mem_req_go        )                                 state_next = STATE_WAITR;
-      STATE_WAITR:  if ( mem_resp_go       )                                 state_next = STATE_FREADG;
+      STATE_READR:  if ( mem_req_go        )                                 state_next = STATE_FREADG;
 
       STATE_FREADG: if ( mem_req_go        )                                 state_next = STATE_READG;
       STATE_READG:  if ( mem_req_go && count_G == size-32'd1 )               state_next = STATE_WAITG;
@@ -691,9 +689,19 @@ module SchedulerVRTL_alt
 
       end
  
-      ///////////////////// WAITR STATE //////////////////////////////////////
+ 
+      ///////////////////// FREADG STATE //////////////////////////////////////
   
-      if(state_reg == STATE_WAITR) begin
+      if(state_reg == STATE_FREADG) begin
+          
+          // Send Memory Request
+          mem_req_val   = mem_resp_val;
+          mem_req_addr  = addr_G;
+          mem_req_type  = mem_rd;
+
+          if ( mem_req_go ) begin 
+              count_G_en  = 1'b1;
+          end
           
           // Receive Memory Response
           mem_resp_rdy  = 1'b1;
@@ -714,21 +722,6 @@ module SchedulerVRTL_alt
               end
             end
           end
-      end
- 
-      ///////////////////// FREADG STATE //////////////////////////////////////
-  
-      if(state_reg == STATE_FREADG) begin
-          
-          // Send Memory Request
-          mem_req_val   = 1'b1;
-          mem_req_addr  = addr_G;
-          mem_req_type  = mem_rd;
-
-          if ( mem_req_go ) begin 
-              count_G_en  = 1'b1;
-          end
-
       end
  
       ///////////////////// READG STATE //////////////////////////////////////
@@ -966,13 +959,13 @@ module SchedulerVRTL_alt
 //      vc_trace.append_str( trace_str, str );
 //      vc_trace.append_str( trace_str, " " );
 
-      $sformat( str, "(%x|%x)", r_rd_mux_out, sum );
-      vc_trace.append_str( trace_str, str );
-      vc_trace.append_str( trace_str, " " );
-
-//      $sformat( str, "(%x|%x|%x)", count_W[3:0], count_R[3:0], count_G[3:0] );
+//      $sformat( str, "(%x|%x)", r_rd_mux_out, sum );
 //      vc_trace.append_str( trace_str, str );
 //      vc_trace.append_str( trace_str, " " );
+
+      $sformat( str, "(%x|%x|%x)", count_W[3:0], count_R[3:0], count_G[3:0] );
+      vc_trace.append_str( trace_str, str );
+      vc_trace.append_str( trace_str, " " );
 
       $sformat( str, "R0(%x|%x|%x|%x|%x|%x|%x|%x)", reg_r0[0], reg_r0[1], reg_r0[2], reg_r0[3], reg_r0[4], reg_r0[5], reg_r0[6], reg_r0[7] );
       vc_trace.append_str( trace_str, str );
@@ -995,7 +988,7 @@ module SchedulerVRTL_alt
       case ( state_reg )
         STATE_INIT:   vc_trace.append_str( trace_str, "INIT   " );
         STATE_READR:  vc_trace.append_str( trace_str, "READR  " );
-        STATE_WAITR:  vc_trace.append_str( trace_str, "WAITR  " );
+//        STATE_WAITR:  vc_trace.append_str( trace_str, "WAITR  " );
         STATE_FREADG: vc_trace.append_str( trace_str, "FREADG " );
         STATE_READG:  vc_trace.append_str( trace_str, "READG  " );
         STATE_WAITG:  vc_trace.append_str( trace_str, "WAITG  " );

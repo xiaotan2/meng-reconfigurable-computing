@@ -189,11 +189,10 @@ vectorR_4run = fourElementsToOne(vectorR_4run)
 #-------------------------------------------------------------------------
 test_case_table = mk_test_case_table([
   (                       "matrixG            vectorR      result   runs   stall  latency  src_delay  sink_delay" ),
-#  [ "test8_1_0x0x0",    test_8data_1run,    vectorR_1run,    1,      1,      0,     0,       0,         0         ],
+   [ "test8_1_0x0x0",    test_8data_1run,    vectorR_1run,    1,      1,      0,     0,       0,         0         ],
 #  [ "test8_2_0x0x0",    test_8data_1run,    vectorR_1run,    1,      2,      0,     0,       0,         0         ],
 #  [ "test8_3_0x0x0",    test_8data_1run,    vectorR_1run,    1,      3,      0,     0,       0,         0         ],
-  [ "test8_4_0x0x0",    test_8data_4run,    vectorR_4run,    1,      4,      0,     0,       0,         0         ],
-#  [ "test8_delay",    test_8data,    vectorR,    1,         0.3,     3,       2,         3         ],
+   [ "test8_4_0x0x0",    test_8data_4run,    vectorR_4run,    1,      4,      0,     0,       0,         0         ],
 ])
 
 #-------------------------------------------------------------------------
