@@ -42,7 +42,6 @@ module SchedulerVRTL
   output logic                                          mem_resp_rdy
   
 );
-  localparam max_cycles = 1;
 
   // size of G reg array
   localparam m = nports * bw / nbits;
@@ -163,10 +162,12 @@ module SchedulerVRTL
   logic [31:0]  base_G;
   logic [31:0]  base_R;
   logic [31:0]  size;
+  logic [31:0]  nround;
   
   logic         base_G_en;
   logic         base_R_en;
   logic         size_en;
+  logic         nround_en;
  
   regEN #(32) base_G_reg
   (
@@ -195,6 +196,14 @@ module SchedulerVRTL
     .reg_en ( size_en     )
   );
    
+  regEN #(32) nround_reg
+  (
+    .clk    ( clk         ),
+    .reset  ( reset       ),
+    .reg_d  ( pr_req_data ),
+    .reg_q  ( nround      ),
+    .reg_en ( nround_en   )
+  );
 
   //----------------------------------------------------------------------- 
   // Two set of registers to store R
@@ -538,7 +547,7 @@ module SchedulerVRTL
       STATE_WAITG:  if ( mem_resp_go && count_G == n && count_R == max_R )   state_next = STATE_R1END;
                     else if ( mem_resp_go && count_G == n )                  state_next = STATE_READR;
                     else if ( mem_resp_go  )                                 state_next = STATE_READG;
-      STATE_R1END:  if ( count_W == max_cycles-1 )                           state_next = STATE_WRITE;
+      STATE_R1END:  if ( count_W == nround-32'b1 )                           state_next = STATE_WRITE;
                     else                                                     state_next = STATE_CREADG;
 
       // read r1 write r0
@@ -547,7 +556,7 @@ module SchedulerVRTL
                     else if ( mem_resp_go && count_G == n )                  state_next = STATE_CLEARG;
                     else if ( mem_resp_go  )                                 state_next = STATE_CREADG;
       STATE_CLEARG:                                                          state_next = STATE_CREADG;
-      STATE_R0END:  if ( count_W == max_cycles-1)                            state_next = STATE_WRITE;    
+      STATE_R0END:  if ( count_W == nround-32'b1)                            state_next = STATE_WRITE;    
                     else                                                     state_next = STATE_CREADG;
 
       // write back results
@@ -570,10 +579,12 @@ module SchedulerVRTL
   logic load_base_R;
   logic load_base_G;
   logic load_size;
+  logic load_nround;
   
   assign load_base_G = pr_req_go && ( pr_req_addr == 32'd1 );
   assign load_base_R = pr_req_go && ( pr_req_addr == 32'd2 );
   assign load_size   = pr_req_go && ( pr_req_addr == 32'd3 );
+  assign load_nround = pr_req_go && ( pr_req_addr == 32'd4 );
   
   
   always_comb begin
@@ -589,6 +600,7 @@ module SchedulerVRTL
       base_G_en    = 1'b0;
       base_R_en    = 1'b0;
       size_en      = 1'b0;
+      nround_en    = 1'b0;
   
       count_R_en    = 1'b0;
       count_R_clear = 1'b0;
@@ -633,6 +645,9 @@ module SchedulerVRTL
           end
           else if( load_size   ) begin
             size_en    = 1'b1;
+          end
+          else if( load_nround ) begin
+            nround_en    = 1'b1;
           end
   
           pr_resp_type = pr_wr;
@@ -732,7 +747,7 @@ module SchedulerVRTL
         // load last result to r1_reg       
         reg_r1_en[count_G-32'b1] = 1'b1;
 
-        if ( count_W == max_cycles-1 )
+        if ( count_W == nround-32'b1 )
           // clear counter R for write
           count_R_clear = 1'b1;
         else 
@@ -806,7 +821,7 @@ module SchedulerVRTL
         else
           reg_r1_en[n-1] = 1'b1;
        
-        if ( count_W == max_cycles-1 )
+        if ( count_W == nround-32'b1 )
           // clear counter R for write
           count_R_clear = 1'b1;
         else 
@@ -861,7 +876,7 @@ module SchedulerVRTL
 //      $sformat( str, " | GRS(%x | %x | %d)", base_G, base_R, size );
 //      vc_trace.append_str( trace_str, str );
 //      vc_trace.append_str( trace_str, " " );
-  
+
       $sformat( str, "(%x|%x|%x)", count_W, count_R, count_G );
       vc_trace.append_str( trace_str, str );
       vc_trace.append_str( trace_str, " " );

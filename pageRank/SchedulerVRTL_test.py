@@ -206,7 +206,7 @@ def run_test( pageRank, test_params, dump_vcd, test_verilog=False ):
   G_data_bytes = struct.pack("<{}L".format(len(G_data)), *G_data)
   R_data_bytes = struct.pack("<{}L".format(len(R_data)), *R_data)
   
-  pageRank_protocol_msgs = gen_protocol_msgs( len(R_data) , runs, result ) # len(data), result )
+  pageRank_protocol_msgs = gen_protocol_msgs( len(R_data) , result, runs ) # len(data), result )
   pageRank_reqs          = pageRank_protocol_msgs[::2]
   pageRank_resps         = pageRank_protocol_msgs[1::2]
 
