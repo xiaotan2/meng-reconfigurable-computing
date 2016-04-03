@@ -1,0 +1,5 @@
+   Compiling ../../../../floatingpoint_test.cpp in debug mode
+   Compiling ../../../../floatingpoint.cpp in debug mode
+   Generating csim.exe
+The result is 13.9
+@I [SIM-1] CSim done with 0 errors.

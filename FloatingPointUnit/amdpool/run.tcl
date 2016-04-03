@@ -14,6 +14,7 @@ set_top cpp_float
 
 # Add design and testbench files
 add_files floatingpoint.cpp
+add_files -tb floatingpoint_test.cpp
 
 open_solution "solution1"
 # Use Zynq device

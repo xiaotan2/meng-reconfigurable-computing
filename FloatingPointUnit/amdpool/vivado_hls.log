@@ -1,0 +1,59 @@
+================================================================
+  Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC
+  Version 2015.3
+  Build 1368829 on Mon Sep 28 20:31:51 PM 2015
+  Copyright (C) 2015 Xilinx Inc. All rights reserved.
+================================================================
+@I [LIC-101] Checked out feature [HLS]
+@I [HLS-10] Running '/work/zhang/common/tools/xilinx/Vivado_HLS/2015.3/bin/unwrapped/lnx64.o/vivado_hls'
+            for user 'xt85' on host 'en-ec-zhang-01.coecis.cornell.edu' (Linux_x86_64 version 2.6.32-573.22.1.el6.x86_64) on Sun Apr 03 15:11:10 EDT 2016
+            in directory '/home/student/xt85/MENG/meng-reconfigurable-computing/FloatingPointUnit/amdpool'
+@I [HLS-10] Opening and resetting project '/home/student/xt85/MENG/meng-reconfigurable-computing/FloatingPointUnit/amdpool/floatingpoint.prj'.
+@I [HLS-10] Adding design file 'floatingpoint.cpp' to the project
+@I [HLS-10] Adding test bench file 'floatingpoint_test.cpp' to the project
+@I [HLS-10] Opening and resetting solution '/home/student/xt85/MENG/meng-reconfigurable-computing/FloatingPointUnit/amdpool/floatingpoint.prj/solution1'.
+@I [HLS-10] Cleaning up the solution database.
+@I [HLS-10] Setting target device to 'xc7z020clg484-1'
+@I [SYN-201] Setting up clock 'default' with a period of 10ns.
+   Compiling ../../../../floatingpoint_test.cpp in debug mode
+   Compiling ../../../../floatingpoint.cpp in debug mode
+   Generating csim.exe
+The result is 13.9
+@I [SIM-1] CSim done with 0 errors.
+@I [HLS-10] Analyzing design file 'floatingpoint.cpp' ... 
+@I [HLS-10] Validating synthesis directives ...
+@I [HLS-10] Starting code transformations ...
+@I [HLS-10] Checking synthesizability ...
+@I [HLS-111] Elapsed time: 3.27 seconds; current memory usage: 0.179 MB.
+@I [HLS-10] Starting hardware synthesis ...
+@I [HLS-10] Synthesizing 'cpp_float' ...
+@I [HLS-10] ----------------------------------------------------------------
+@I [HLS-10] -- Scheduling module 'cpp_float' 
+@I [HLS-10] ----------------------------------------------------------------
+@I [SCHED-11] Starting scheduling ...
+@I [SCHED-11] Finished scheduling.
+@I [HLS-111] Elapsed time: 0.02 seconds; current memory usage: 0.179 MB.
+@I [HLS-10] ----------------------------------------------------------------
+@I [HLS-10] -- Exploring micro-architecture for module 'cpp_float' 
+@I [HLS-10] ----------------------------------------------------------------
+@I [BIND-100] Starting micro-architecture generation ...
+@I [BIND-101] Performing variable lifetime analysis.
+@I [BIND-101] Exploring resource sharing.
+@I [BIND-101] Binding ...
+@I [BIND-100] Finished micro-architecture generation.
+@I [HLS-111] Elapsed time: 0.01 seconds; current memory usage: 0.179 MB.
+@I [HLS-10] ----------------------------------------------------------------
+@I [HLS-10] -- Generating RTL for module 'cpp_float' 
+@I [HLS-10] ----------------------------------------------------------------
+@I [RTGEN-500] Setting interface mode on port 'cpp_float/a' to 'ap_none'.
+@I [RTGEN-500] Setting interface mode on port 'cpp_float/b' to 'ap_none'.
+@I [RTGEN-500] Setting interface mode on function 'cpp_float' to 'ap_ctrl_hs'.
+@I [RTGEN-100] Generating core module 'cpp_float_fadd_32ns_32ns_32_5_full_dsp': 1 instance(s).
+@I [RTGEN-100] Finished creating RTL model for 'cpp_float'.
+@I [HLS-111] Elapsed time: 0.02 seconds; current memory usage: 0.179 MB.
+@I [HLS-10] Finished generating all RTL models.
+@I [WSYSC-301] Generating RTL SystemC for 'cpp_float'.
+@I [WVHDL-304] Generating RTL VHDL for 'cpp_float'.
+@I [WVLOG-307] Generating RTL Verilog for 'cpp_float'.
+@I [HLS-112] Total elapsed time: 16.606 seconds; peak memory usage: 0.179 MB.
+@I [LIC-101] Checked in feature [HLS]
