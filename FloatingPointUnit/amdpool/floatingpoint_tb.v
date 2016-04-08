@@ -40,12 +40,12 @@ initial begin
         $display ( "Pass" );
      else
         $display ( "Fail" );
-     $finish;
+     $stop;
 end
 
-initial begin
-     $shm_open ("floatingpoint_tb.db");
-     $shm_probe(floatingpoint,"AS");
-     $dumpfile ("floatingpoint_tb.vcd");
-end
+//initial begin
+//     $shm_open ("floatingpoint_tb.db");
+//     $shm_probe(floatingpoint,"AS");
+//     $dumpfile ("floatingpoint_tb.vcd");
+//end
 endmodule
