@@ -26,7 +26,8 @@ module multiplier(
 
         input_a_ack,
 
-        input_b_ack);
+        input_b_ack
+);
 
 
 
