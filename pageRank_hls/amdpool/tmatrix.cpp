@@ -74,7 +74,7 @@ int main()
   //--------------------------------------------------------------------------------------
   // construct the transition matrix
   //--------------------------------------------------------------------------------------
-  float sigma = 0.1;
+  float sigma = 0.15;
   std::vector< std::vector<float> > t_matrix;
   std::vector<float> row_sum;
   bool leap = true;
@@ -129,7 +129,7 @@ int main()
       float tmp = 0;
       for ( int i = 0; i < size; ++i ) {
         tmp += row_vector[i] * t_matrix[i][j];
-      //  std::cout << row_vector[i] << " * " << t_matrix[i][j] << std::endl;
+        // std::cout << row_vector[i] << " * " << t_matrix[i][j] << std::endl;
       }
       rank_vector[j] = tmp;
       // std::cout << rank_vector[j] << "\n";

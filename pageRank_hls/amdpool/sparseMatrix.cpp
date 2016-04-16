@@ -23,9 +23,11 @@ vector<float> sparseMatrixMul(vector<float> A, vector<int> IA, vector<int> JA, v
   vector<float> result (R.size(), 0);
   for(int i = 0; i < result.size(); ++i) {
     for(int k = IA[i]; k < IA[i+1]; ++k) {
+//      cout << A[k] << " * " << R[JA[k]] << endl;
       result[i] = result[i] + A[k] * R[JA[k]];
-      result[i] *= (1-P_VALUE);
     }
+//    cout << result[i] << endl;
+    result[i] *= (1-P_VALUE);
   }
   return result;
 }
@@ -152,7 +154,8 @@ int main()
   // ranking calculation row_vector * t_matrix^N
   //--------------------------------------------------------------------------------------
   
-  vector<float> row_vector (nodes, (1/(float)nodes));
+  vector<float> row_vector (nodes, 1/(float)(nodes));
+//  vector<float> init_vector (nodes, 1/(float)(nodes));
   
   vector<float> rank_vector (nodes, 0);
 
@@ -163,15 +166,15 @@ int main()
   for ( int idx = 0; error > threshold ; ++idx ){
 
     vector<float> vector1 = sparseMatrixMul(A, IA, JA, row_vector);
-    vector<float> vector2 = vectorMul(row_vector, (P_VALUE/(float)nodes));
+    vector<float> vector2 = vectorMul(row_vector, P_VALUE);
     rank_vector = vectorAdd(vector1, vector2);
 
-  //  cout << "vector1:" << endl;
-  //  for(int i = 0; i < vector1.size(); ++i) {
-  //    cout << vector1[i] << " ";
-  //  }
-  //  cout << endl;
-    
+//    cout << "vector1:" << endl;
+//    for(int i = 0; i < vector1.size(); ++i) {
+//      cout << vector1[i] << " ";
+//    }
+//    cout << endl;
+//    
   //  cout << "vector2:" << endl;
   //  for(int i = 0; i < vector2.size(); ++i) {
   //    cout << vector2[i] << " ";

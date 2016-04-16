@@ -19,9 +19,15 @@ all: sparseMatrix
 
 # Compile & run digitrec implementation
 sparseMatrix: sparseMatrix.cpp
-	@echo "Compiling & executing the transition matrix program ..."
+	@echo "Compiling & executing the sparse matrix program ..."
 	g++ ${CFLAGS} sparseMatrix.cpp -o sparseMatrix
 	./sparseMatrix
+
+# Compile & run digitrec implementation
+tmatrix:tmatrix.cpp
+	@echo "Compiling & executing the transition matrix program ..."
+	g++ ${CFLAGS} tmatrix.cpp -o tmatrix
+	./tmatrix
 
 csim: pageRank.cpp pageRank_test.cpp
 	@echo "Compiling & simulating PAGERANK ..."
