@@ -77,7 +77,7 @@ int main()
   float sigma = 0.1;
   std::vector< std::vector<float> > t_matrix;
   std::vector<float> row_sum;
-  bool leap = false;
+  bool leap = true;
 
   // initialize t_matrix size x size
   t_matrix.resize(size);
@@ -109,7 +109,11 @@ int main()
   //--------------------------------------------------------------------------------------
   
   std::vector<float> row_vector;
-  row_vector = t_matrix[0]; 
+  row_vector.resize(size);
+  
+  for ( int i = 0; i < size; ++i )
+    row_vector[i] = 0.2;
+//  row_vector = t_matrix[0]; 
   
   std::vector<float> rank_vector;
   rank_vector.resize(size);
