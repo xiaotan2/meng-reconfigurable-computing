@@ -1,0 +1,87 @@
+================================================================
+  Vivado(TM) HLS - High-Level Synthesis from C, C++ and SystemC
+  Version 2015.2
+  Build 1266856 on Fri Jun 26 16:57:37 PM 2015
+  Copyright (C) 2015 Xilinx Inc. All rights reserved.
+================================================================
+@I [LIC-101] Checked out feature [HLS]
+@I [HLS-10] Running '/research/brg/install/bare-pkgs/x86_64-centos6/pkgs/xilinx-vivado-2015.2/Vivado_HLS/2015.2/bin/unwrapped/lnx64.o/vivado_hls'
+            for user 'mq58' on host 'en-ec-zhang-01.coecis.cornell.edu' (Linux_x86_64 version 2.6.32-573.22.1.el6.x86_64) on Thu Apr 14 16:39:58 EDT 2016
+            in directory '/home/student/mq58/MengProj/meng-reconfigurable-computing/cordic_tutorial/amdpool'
+@I [HLS-10] Creating and opening project '/home/student/mq58/MengProj/meng-reconfigurable-computing/cordic_tutorial/amdpool/cordic.prj'.
+@I [HLS-10] Adding design file 'cordic.cpp' to the project
+@I [HLS-10] Adding test bench file 'cordic_test.cpp' to the project
+@I [HLS-10] Creating and opening solution '/home/student/mq58/MengProj/meng-reconfigurable-computing/cordic_tutorial/amdpool/cordic.prj/solution1'.
+@I [HLS-10] Cleaning up the solution database.
+@I [HLS-10] Setting target device to 'xc7z020clg484-1'
+@I [SYN-201] Setting up clock 'default' with a period of 10ns.
+   Compiling ../../../../cordic_test.cpp in debug mode
+   Compiling ../../../../cordic.cpp in debug mode
+   Generating csim.exe
+ (0) act_sum = 0sum = 0
+ (1) act_sum = 1sum = 1
+ (2) act_sum = 2sum = 2
+ (3) act_sum = 3sum = 3
+ (4) act_sum = 4sum = 4
+ (5) act_sum = 1sum = 1
+ (6) act_sum = 2sum = 2
+ (7) act_sum = 3sum = 3
+ (8) act_sum = 4sum = 4
+ (9) act_sum = 5sum = 5
+ (10) act_sum = 2sum = 2
+ (11) act_sum = 3sum = 3
+ (12) act_sum = 4sum = 4
+ (13) act_sum = 5sum = 5
+ (14) act_sum = 6sum = 6
+ (15) act_sum = 3sum = 3
+ (16) act_sum = 4sum = 4
+ (17) act_sum = 5sum = 5
+ (18) act_sum = 6sum = 6
+ (19) act_sum = 7sum = 7
+ (20) act_sum = 4sum = 4
+ (21) act_sum = 5sum = 5
+ (22) act_sum = 6sum = 6
+ (23) act_sum = 7sum = 7
+ (24) act_sum = 8sum = 8
+#------------------------------------------------
+Number of errors = 0
+#------------------------------------------------
+@I [SIM-1] CSim done with 0 errors.
+@I [HLS-10] Analyzing design file 'cordic.cpp' ... 
+@I [HLS-10] Validating synthesis directives ...
+@I [HLS-10] Starting code transformations ...
+@I [HLS-10] Checking synthesizability ...
+@I [XFORM-602] Inlining function 'cordic' into 'dut' (cordic.cpp:32) automatically.
+@I [XFORM-602] Inlining function 'cordic' into 'dut' (cordic.cpp:32) automatically.
+@I [HLS-111] Elapsed time: 4.11 seconds; current memory usage: 0.157 MB.
+@I [HLS-10] Starting hardware synthesis ...
+@I [HLS-10] Synthesizing 'dut' ...
+@I [HLS-10] ----------------------------------------------------------------
+@I [HLS-10] -- Scheduling module 'dut' 
+@I [HLS-10] ----------------------------------------------------------------
+@I [SCHED-11] Starting scheduling ...
+@I [SCHED-11] Finished scheduling.
+@I [HLS-111] Elapsed time: 0.12 seconds; current memory usage: 0.157 MB.
+@I [HLS-10] ----------------------------------------------------------------
+@I [HLS-10] -- Exploring micro-architecture for module 'dut' 
+@I [HLS-10] ----------------------------------------------------------------
+@I [BIND-100] Starting micro-architecture generation ...
+@I [BIND-101] Performing variable lifetime analysis.
+@I [BIND-101] Exploring resource sharing.
+@I [BIND-101] Binding ...
+@I [BIND-100] Finished micro-architecture generation.
+@I [HLS-111] Elapsed time: 0.01 seconds; current memory usage: 0.157 MB.
+@I [HLS-10] ----------------------------------------------------------------
+@I [HLS-10] -- Generating RTL for module 'dut' 
+@I [HLS-10] ----------------------------------------------------------------
+@I [RTGEN-500] Setting interface mode on port 'dut/strm_in_V_V' to 'ap_fifo'.
+@I [RTGEN-500] Setting interface mode on port 'dut/strm_out_V_V' to 'ap_fifo'.
+@I [RTGEN-500] Setting interface mode on function 'dut' to 'ap_ctrl_hs'.
+@I [RTGEN-100] Finished creating RTL model for 'dut'.
+@I [HLS-111] Elapsed time: 0.01 seconds; current memory usage: 0.157 MB.
+@I [HLS-10] Finished generating all RTL models.
+@I [WSYSC-301] Generating RTL SystemC for 'dut'.
+@I [WVHDL-304] Generating RTL VHDL for 'dut'.
+@I [WVLOG-307] Generating RTL Verilog for 'dut'.
+@I [HLS-112] Total elapsed time: 27.521 seconds; peak memory usage: 0.157 MB.
+@I [LIC-101] Checked in feature [HLS]
