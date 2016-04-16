@@ -14,14 +14,14 @@ VHLS_INC ?= ${VHLS_PATH}/include
 
 CFLAGS = -g -I${VHLS_INC} 
 
-all: tmatrix
+all: sparseMatrix
 
 
 # Compile & run digitrec implementation
-tmatrix: tmatrix.cpp
+sparseMatrix: sparseMatrix.cpp
 	@echo "Compiling & executing the transition matrix program ..."
-	g++ ${CFLAGS} tmatrix.cpp -o tmatrix
-	./tmatrix
+	g++ ${CFLAGS} sparseMatrix.cpp -o sparseMatrix
+	./sparseMatrix
 
 csim: pageRank.cpp pageRank_test.cpp
 	@echo "Compiling & simulating PAGERANK ..."
