@@ -10,6 +10,25 @@ The main algorithm characteristics of this application are:
 3.	This is a starter example to illustrate the use flow of SDAccel. Users may need to modify their source code when multiplying very large matrices. 
 4. 	Note that you have to add HLS INTERFACE pragma to provide the interface information to SDAccel
 
+Setup Environment
+---------------------------
+(1) The path to SDAccel 2015.4 on zhang-01 is 
+
+/work/zhang/common/tools/xilinx/SDAccel/2015.4/
+
+(2) Add the license path:
+
+export XILINXD_LICENSE_FILE=/work/zhang/common/tools/xilinx/SDAccel/SDAccel-zhang01-eth0-20150818.lic
+
+(3) Source setup script
+
+source /work/zhang/common/tools/xilinx/SDAccel/2015.4/settings64.sh
+
+(4) Examples directory
+
+/work/zhang/common/tools/xilinx/SDAccel/2015.4/examples
+
+
 Compiling the Application
 ---------------------------
 This application is compiled using the SDAccel script mode target to alpha-data 7v3 platform.
