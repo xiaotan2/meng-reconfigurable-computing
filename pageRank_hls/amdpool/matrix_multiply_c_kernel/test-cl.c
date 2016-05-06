@@ -93,7 +93,7 @@ int main(int argc, char** argv)
     char target_device_name[1001] = "xilinx:adm-pcie-7v3:1ddr:2.1";
 
     int err;                            // error code returned from api calls
-    #inculde "test-cl.h"     
+    #include "test-cl.h"     
 //    int a[DATA_SIZE];                   // original data set given to device
 //    int b[DATA_SIZE];                   // original data set given to device
     int results[DATA_SIZE];             // results returned from device

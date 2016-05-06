@@ -49,7 +49,7 @@ add_device -vbnv xilinx:adm-pcie-7v3:1ddr:2.1
 set_property -name host_cflags -value "-g -Wall -D FPGA_DEVICE -D C_KERNEL" -objects [current_solution]
 
 # Host Source Files
-add_files "test-cl.c"
+add_files "test-cl.c" "test-cl.h"
 
 # Kernel Definition
 create_kernel mmult -type c
@@ -66,11 +66,11 @@ compile_emulation -flow cpu -opencl_binary [get_opencl_binary mmult1]
 # Run the compiled application in CPU based emulation mode
 run_emulation -flow cpu -args "mmult1.xclbin"
 
-# Compile the application to run on the accelerator card
-build_system
-
-# Package the application binaries
-package_system
+## Compile the application to run on the accelerator card
+#build_system
+#
+## Package the application binaries
+#package_system
 
 
 # XSIP watermark, do not delete 67d7842dbbe25473c3c32b93c0da8047785f30d78e8a024de1b57352245f9689
