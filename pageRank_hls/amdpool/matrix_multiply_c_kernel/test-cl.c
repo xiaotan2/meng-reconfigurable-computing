@@ -58,9 +58,9 @@ ALL TIMES.
 
 // Use a static matrix for simplicity
 //
-#define MATRIX_RANK 16
-#define DATA_SIZE MATRIX_RANK*MATRIX_RANK
-
+#define MATRIX_RANK 5
+//#define DATA_SIZE MATRIX_RANK*MATRIX_RANK
+#define DATA_SIZE 5
 ////////////////////////////////////////////////////////////////////////////////
 
 int
@@ -93,9 +93,9 @@ int main(int argc, char** argv)
     char target_device_name[1001] = "xilinx:adm-pcie-7v3:1ddr:2.1";
 
     int err;                            // error code returned from api calls
-     
-    int a[DATA_SIZE];                   // original data set given to device
-    int b[DATA_SIZE];                   // original data set given to device
+    #inculde "test-cl.h"     
+//    int a[DATA_SIZE];                   // original data set given to device
+//    int b[DATA_SIZE];                   // original data set given to device
     int results[DATA_SIZE];             // results returned from device
     int sw_results[DATA_SIZE];          // results returned from device
     unsigned int correct;               // number of correct results returned
@@ -114,9 +114,11 @@ int main(int argc, char** argv)
    
     char cl_platform_vendor[1001];
     char cl_platform_name[1001];
-   
-    cl_mem input_a;                     // device memory used for the input array
-    cl_mem input_b;                     // device memory used for the input array
+
+    cl_mem input_nodes;                     // device memory used for the input array
+    cl_mem input_A;                     // device memory used for the input array
+    cl_mem input_IA;                     // device memory used for the input array
+    cl_mem input_JA;                     // device memory used for the input array
     cl_mem output;                      // device memory used for the output array
    
     if (argc != 2){
@@ -128,8 +130,8 @@ int main(int argc, char** argv)
     //
     int i = 0;
     for(i = 0; i < DATA_SIZE; i++) {
-        a[i] = (int)i;
-        b[i] = (int)i;
+//        a[i] = (int)i;
+//        b[i] = (int)i;
         results[i] = 0;
     }
 
@@ -282,42 +284,68 @@ int main(int argc, char** argv)
 
     // Create the input and output arrays in device memory for our calculation
     //
-    input_a = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(int) * DATA_SIZE, NULL, NULL);
-    input_b = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(int) * DATA_SIZE, NULL, NULL);
-    output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(int) * DATA_SIZE, NULL, NULL);
-    if (!input_a || !input_b || !output)
+    input_nodes = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(int), NULL, NULL);
+    input_A = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(float) * A_SIZE, NULL, NULL);
+    input_IA = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(int) * IA_SIZE, NULL, NULL);
+    input_JA = clCreateBuffer(context,  CL_MEM_READ_ONLY,  sizeof(int) * JA_SIZE, NULL, NULL);
+    output = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * DATA_SIZE, NULL, NULL);
+    if (!input_nodes || !input_A || !input_IA || !input_JA || !output)
         {
             printf("Error: Failed to allocate device memory!\n");
             printf("Test failed\n");
             return EXIT_FAILURE;
         }    
     
-    // Write our data set into the input array in device memory 
+    // Write our data set into the input array in devifloat) * A_SIZEce memory 
     //
-    err = clEnqueueWriteBuffer(commands, input_a, CL_TRUE, 0, sizeof(int) * DATA_SIZE, a, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(commands, input_nodes, CL_TRUE, 0, sizeof(int), nodes, 0, NULL, NULL);
     if (err != CL_SUCCESS)
         {
-            printf("Error: Failed to write to source array a!\n");
+            printf("Error: Failed to write to source array A!\n");
+            printf("Test failed\n");
+            return EXIT_FAILURE;
+        }
+
+
+    // Write our data set into the input array in device memory 
+    //
+    err = clEnqueueWriteBuffer(commands, input_A, CL_TRUE, 0, sizeof(float) * A_SIZE, A, 0, NULL, NULL);
+    if (err != CL_SUCCESS)
+        {
+            printf("Error: Failed to write to source array A!\n");
             printf("Test failed\n");
             return EXIT_FAILURE;
         }
 
     // Write our data set into the input array in device memory 
     //
-    err = clEnqueueWriteBuffer(commands, input_b, CL_TRUE, 0, sizeof(int) * DATA_SIZE, b, 0, NULL, NULL);
+    err = clEnqueueWriteBuffer(commands, input_IA, CL_TRUE, 0, sizeof(int) * IA_SIZE, IA, 0, NULL, NULL);
     if (err != CL_SUCCESS)
         {
-            printf("Error: Failed to write to source array b!\n");
+            printf("Error: Failed to write to source array IA!\n");
             printf("Test failed\n");
             return EXIT_FAILURE;
         }
+
+    // Write our data set into the input array in device memory 
+    //
+    err = clEnqueueWriteBuffer(commands, input_JA, CL_TRUE, 0, sizeof(int) * JA_SIZE, JA, 0, NULL, NULL);
+    if (err != CL_SUCCESS)
+        {
+            printf("Error: Failed to write to source array JA!\n");
+            printf("Test failed\n");
+            return EXIT_FAILURE;
+        }
+
     
     // Set the arguments to our compute kernel
     //
     err = 0;
-    err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_a);
-    err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &input_b);
-    err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &output);
+    err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_nodes);
+    err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &input_A);
+    err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &input_IA);
+    err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &input_JA);
+    err |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &output);
     if (err != CL_SUCCESS)
         {
             printf("Error: Failed to set kernel arguments! %d\n", err);
@@ -349,7 +377,7 @@ int main(int argc, char** argv)
     // Read back the results from the device to verify the output
     //
     cl_event readevent;
-    err = clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(int) * DATA_SIZE, results, 0, NULL, &readevent );  
+    err = clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(float) * DATA_SIZE, results, 0, NULL, &readevent );  
     if (err != CL_SUCCESS)
         {
             printf("Error: Failed to read output array! %d\n", err);
@@ -360,56 +388,66 @@ int main(int argc, char** argv)
     clWaitForEvents(1, &readevent);
     
     printf("A\n");
-    for (i=0;i<DATA_SIZE;i++) {
-        printf("%x ",a[i]);
-        if (((i+1) % 16) == 0)
-            printf("\n");
+    for (i=0;i<A_SIZE;i++) {
+        printf("%x ",A[i]);
+ //       if (((i+1) % 16) == 0)
     }
-    printf("B\n");
-    for (i=0;i<DATA_SIZE;i++) {
-        printf("%x ",b[i]);
-        if (((i+1) % 16) == 0)
-            printf("\n");
+    printf("\n");
+
+    printf("IA\n");
+    for (i=0;i<IA_SIZE;i++) {
+        printf("%x ",IA[i]);
+//        if (((i+1) % 16) == 0)
     }
-    printf("res\n");
+            printf("\n");
+
+    printf("JA\n");
+    for (i=0;i<JA_SIZE;i++) {
+        printf("%x ",JA[i]);
+//        if (((i+1) % 16) == 0)
+    }
+            printf("\n");
+
+    printf("RES\n");
     for (i=0;i<DATA_SIZE;i++) {
         printf("%x ",results[i]);
-        if (((i+1) % 16) == 0)
-            printf("\n");
+//        if (((i+1) % 16) == 0)
     }
-    
-    // Validate our results
-    //
-    correct = 0;
-    for(i = 0; i < DATA_SIZE; i++)
-        {
-            int row = i/MATRIX_RANK;
-            int col = i%MATRIX_RANK;
-            int running = 0;
-            int index;
-            for (index=0;index<MATRIX_RANK;index++) {
-                int aIndex = row*MATRIX_RANK + index;
-                int bIndex = col + index*MATRIX_RANK;
-                running += a[aIndex] * b[bIndex];
-            }
-            sw_results[i] = running;
-        }
-    
-    for (i = 0;i < DATA_SIZE; i++) 
-        if(results[i] == sw_results[i])
-            correct++;
-    printf("Software\n");
-    for (i=0;i<DATA_SIZE;i++) {
-        //printf("%0.2f ",sw_results[i]);
-        printf("%d ",sw_results[i]);
-        if (((i+1) % 16) == 0)
             printf("\n");
-    }
     
     
-    // Print a brief summary detailing the results
-    //
-    printf("Computed '%d/%d' correct values!\n", correct, DATA_SIZE);
+//    // Validate our results
+//    //
+//    correct = 0;
+//    for(i = 0; i < DATA_SIZE; i++)
+//        {
+//            int row = i/MATRIX_RANK;
+//            int col = i%MATRIX_RANK;
+//            int running = 0;
+//            int index;
+//            for (index=0;index<MATRIX_RANK;index++) {
+//                int aIndex = row*MATRIX_RANK + index;
+//                int bIndex = col + index*MATRIX_RANK;
+//                running += a[aIndex] * b[bIndex];
+//            }
+//            sw_results[i] = running;
+//        }
+//    
+//    for (i = 0;i < DATA_SIZE; i++) 
+//        if(results[i] == sw_results[i])
+//            correct++;
+//    printf("Software\n");
+//    for (i=0;i<DATA_SIZE;i++) {
+//        //printf("%0.2f ",sw_results[i]);
+//        printf("%d ",sw_results[i]);
+//        if (((i+1) % 16) == 0)
+//            printf("\n");
+//    }
+//    
+//    
+//    // Print a brief summary detailing the results
+//    //
+//    printf("Computed '%d/%d' correct values!\n", correct, DATA_SIZE);
     
     // Shutdown and cleanup
     //
