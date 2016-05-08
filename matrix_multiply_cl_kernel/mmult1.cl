@@ -39,11 +39,11 @@ void pageRank(__local float* rank_vector, __local float* A, __local int* IA, __l
     rank_vector[j] = 0;  
 
   float error = 10000;
-  float threshold = 0.1;
+  float threshold = 0.01;
   float vector1[MATRIX_RANK];
   float vector2[MATRIX_RANK];
   
-  for ( int idx = 0; idx < 2; idx++ ){ //error > threshold ; ++idx ){
+  for ( int idx = 0; error > threshold ; ++idx ){
     sparseMatrixMul(vector1, A, IA, JA, row_vector);
     vectorMul(vector2, row_vector, P_VALUE);
     vectorAdd(rank_vector, vector1, vector2);
