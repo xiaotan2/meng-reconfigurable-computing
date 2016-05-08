@@ -71,7 +71,7 @@ run_emulation -flow cpu -args "mmult1.xclbin"
 #run_emulation -flow cpu -args "mmult1.xclbin"
 
 # Estimate resource utilization
-report_estimate
+#report_estimate
 
 # Compile the application to run on the accelerator card
 #build_system
