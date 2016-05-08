@@ -4,6 +4,9 @@
 // Helper Functions
 void sparseMatrixMul(float* result, __local float* A, __local int* IA, __local int* JA, float* R) {
   for(int i = 0; i < MATRIX_RANK; ++i) {
+    result[i] = 0;
+  }
+  for(int i = 0; i < MATRIX_RANK; ++i) {
     for(int k = IA[i]; k < IA[i+1]; ++k) {
       result[i] = result[i] + A[k] * R[JA[k]];
     }
