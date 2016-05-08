@@ -16,11 +16,12 @@
 
 using namespace std;
 
-int main()
+int main(int argc, char* argv[])
 {
+  char* filename = argv[1];
   // Read input file of the graph in adjacency list format
   string line;
-  ifstream myfile("data/graph2.dat");
+  ifstream myfile(filename);
 
   //--------------------------------------------------------------------------------------
   // construct the link matrix
@@ -65,8 +66,8 @@ int main()
       int dest = *value;
       ++value;
       // weight
-      int weight = *value;
-      ++value;
+      int weight = 1;//*value;
+      //++value;
       matrix[source][dest] = weight;
       sum[source] += weight;
     }
@@ -77,13 +78,13 @@ int main()
     std::cout << "Unable to open the file";
   }
 
-  cout << "link_matrix:" << endl;
-  for ( int i = 0; i < nodes; ++i ) {
-    for ( int j = 0; j < nodes; ++j ) {
-      cout << link_matrix[i][j] << " ";
-    }
-    cout << endl;
-  }
+ // cout << "link_matrix:" << endl;
+ // for ( int i = 0; i < nodes; ++i ) {
+ //   for ( int j = 0; j < nodes; ++j ) {
+ //     cout << link_matrix[i][j] << " ";
+ //   }
+ //   cout << endl;
+ // }
 
   //--------------------------------------------------------------------------------------
   // construct the sparse matrix
