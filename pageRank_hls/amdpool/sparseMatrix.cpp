@@ -52,7 +52,7 @@ int main()
 {
   // Read input file of the graph in adjacency list format
   string line;
-  ifstream myfile("data/graph2.dat");
+  ifstream myfile("data/wiki-Vote.txt");
 
   //--------------------------------------------------------------------------------------
   // construct the link matrix
@@ -97,8 +97,8 @@ int main()
       int dest = *value;
       ++value;
       // weight
-      int weight = *value;
-      ++value;
+      int weight = 1;//*value;
+      //++value;
       matrix[source][dest] = weight;
       sum[source] += weight;
     }
@@ -109,13 +109,13 @@ int main()
     std::cout << "Unable to open the file";
   }
 
-  cout << "link_matrix:" << endl;
-  for ( int i = 0; i < nodes; ++i ) {
-    for ( int j = 0; j < nodes; ++j ) {
-      cout << link_matrix[i][j] << " ";
-    }
-    cout << endl;
-  }
+ // cout << "link_matrix:" << endl;
+ // for ( int i = 0; i < nodes; ++i ) {
+ //   for ( int j = 0; j < nodes; ++j ) {
+ //     cout << link_matrix[i][j] << " ";
+ //   }
+ //   cout << endl;
+ // }
 
   //--------------------------------------------------------------------------------------
   // construct the sparse matrix
@@ -133,23 +133,23 @@ int main()
     IA.push_back(count + IA[i]);
   }
 
-  cout << "A:" << endl;
-  for(int i = 0; i < A.size(); ++i) {
-    cout << A[i] << " ";
-  }
-  cout << endl;
+ // cout << "A:" << endl;
+ // for(int i = 0; i < A.size(); ++i) {
+ //   cout << A[i] << " ";
+ // }
+ // cout << endl;
 
-  cout << "IA:" << endl;
-  for(int i = 0; i < IA.size(); ++i) {
-    cout << IA[i] << " ";
-  }
-  cout << endl;
-  
-  cout << "JA:" << endl;
-  for(int i = 0; i < JA.size(); ++i) {
-    cout << JA[i] << " ";
-  }
-  cout << endl;
+ // cout << "IA:" << endl;
+ // for(int i = 0; i < IA.size(); ++i) {
+ //   cout << IA[i] << " ";
+ // }
+ // cout << endl;
+ // 
+ // cout << "JA:" << endl;
+ // for(int i = 0; i < JA.size(); ++i) {
+ //   cout << JA[i] << " ";
+ // }
+ // cout << endl;
   //--------------------------------------------------------------------------------------
   // ranking calculation row_vector * t_matrix^N
   //--------------------------------------------------------------------------------------
@@ -162,30 +162,30 @@ int main()
   float error = 10000;
   float threshold = 0.001;
 
-  cout << "ranking calculation" << std::endl;
+//  cout << "ranking calculation" << std::endl;
   for ( int idx = 0; error > threshold ; ++idx ){
 
     vector<float> vector1 = sparseMatrixMul(A, IA, JA, row_vector);
     vector<float> vector2 = vectorMul(row_vector, P_VALUE);
     rank_vector = vectorAdd(vector1, vector2);
 
-//    cout << "vector1:" << endl;
-//    for(int i = 0; i < vector1.size(); ++i) {
-//      cout << vector1[i] << " ";
-//    }
-//    cout << endl;
-//    
+  //  cout << "vector1:" << endl;
+  //  for(int i = 0; i < vector1.size(); ++i) {
+  //    cout << vector1[i] << " ";
+  //  }
+  //  cout << endl;
+  //
   //  cout << "vector2:" << endl;
   //  for(int i = 0; i < vector2.size(); ++i) {
   //    cout << vector2[i] << " ";
   //  }
   //  cout << endl;
-    
-    cout << "rank vector:" << endl;
-    for(int i = 0; i < rank_vector.size(); ++i) {
-      cout << rank_vector[i] << " ";
-    }
-    cout << endl;
+  //
+  //  cout << "rank vector:" << endl;
+  //  for(int i = 0; i < rank_vector.size(); ++i) {
+  //    cout << rank_vector[i] << " ";
+  //  }
+  //  cout << endl;
 
     // error calculation
     error = 0;
@@ -196,6 +196,12 @@ int main()
 
  
     row_vector = rank_vector;
+
+  //  cout << "rank_vector:" << endl;
+  //  for(int i = 0; i < rank_vector.size(); ++i) {
+  //    cout << rank_vector[i] << " ";
+  //  }
+  //  cout << endl;
   }
 
   for ( int i = 0; i < nodes; ++i )
