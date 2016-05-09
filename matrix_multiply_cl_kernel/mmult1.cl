@@ -39,7 +39,7 @@ void pageRank(__local float* rank_vector, __local float* A, __local int* IA, __l
     rank_vector[j] = 0;  
 
   float error = 10000;
-  float threshold = 0.01;
+  float threshold = 0.001;
   float vector1[MATRIX_RANK];
   float vector2[MATRIX_RANK];
   

@@ -30,7 +30,7 @@ void vectorAdd( float* rank_vector, float* V1, float* V2) {
 
 // PageRank
 void pageRank( float* rank_vector,  float* A,  int* IA,  int* JA){
-    printf("A:\n");
+    /*printf("A:\n");
     for (int i = 0; i < A_SIZE; i++) {
         printf("%f, ", A[i]); 
     }
@@ -44,17 +44,17 @@ void pageRank( float* rank_vector,  float* A,  int* IA,  int* JA){
     for (int i = 0; i < JA_SIZE; i++) {
     printf("%d, ", JA[i]);
     }
-    printf("\n");
+    printf("\n");*/
 
   // Initialize row_vector to 1/MATRIX_RANK
   float row_vector[MATRIX_RANK];
   for (int i = 0; i < MATRIX_RANK; ++i)
     row_vector[i] = 1/(float)(MATRIX_RANK);  
 
-  printf("Row Vector:\n");
+  /*printf("Row Vector:\n");
   for (int i = 0; i < MATRIX_RANK; i++)
     printf("%f, ", row_vector[i]); 
-  printf("\n");
+  printf("\n");*/
 
   // Initialize rank_vector to 0
   for (int j = 0; j < MATRIX_RANK; ++j)
@@ -66,17 +66,17 @@ void pageRank( float* rank_vector,  float* A,  int* IA,  int* JA){
   float vector2[MATRIX_RANK];
   
   for ( int idx = 0; error > threshold; ++idx ){ //error > threshold ; ++idx ){
-    printf("Initial RowVector Result:\n");
+    /*printf("Initial RowVector Result:\n");
     for (int i = 0; i < MATRIX_RANK; i++) {
       printf("%f, ", row_vector[i]);
     }
-    printf("\n");
+    printf("\n");*/
     sparseMatrixMul(vector1, A, IA, JA, row_vector);
-    printf("SparseMatrixMul Result:\n");
+    /*printf("SparseMatrixMul Result:\n");
     for (int i = 0; i < MATRIX_RANK; i++) {
       printf("%f, ", vector1[i]);
     }
-    printf("\n");
+    printf("\n");*/
     vectorMul(vector2, row_vector, P_VALUE);
     vectorAdd(rank_vector, vector1, vector2);
 
@@ -91,11 +91,11 @@ void pageRank( float* rank_vector,  float* A,  int* IA,  int* JA){
     for ( int i = 0; i < MATRIX_RANK; ++i ){
       row_vector[i] = rank_vector[i];
     }
-    printf("Final RowVector Result:\n");
+    /*printf("Final RowVector Result:\n");
     for (int i = 0; i < MATRIX_RANK; i++) {
       printf("%f, ", row_vector[i]);
     }
-    printf("\n");
+    printf("\n");*/
   }
 }
 
