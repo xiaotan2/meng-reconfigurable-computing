@@ -12,4 +12,3 @@ mm: mmult1_native.c
 sparseMatrix: genSparseMatrix.cpp
 	@echo "Compiling & executing the sparse matrix program ..."
 	g++ genSparseMatrix.cpp -o genSparseMatrix
-	./genSparseMatrix
