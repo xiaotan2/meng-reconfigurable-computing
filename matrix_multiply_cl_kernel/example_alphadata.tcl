@@ -59,19 +59,24 @@ add_files -kernel [get_kernels mmult] "mmult1.cl"
 create_opencl_binary mmult1
 set_property region "OCL_REGION_0" [get_opencl_binary mmult1]
 create_compute_unit -opencl_binary [get_opencl_binary mmult1] -kernel [get_kernels mmult] -name k1
+#create_compute_unit -opencl_binary [get_opencl_binary mmult1] -kernel [get_kernels mmult] -name k2
+#create_compute_unit -opencl_binary [get_opencl_binary mmult1] -kernel [get_kernels mmult] -name k3
+#create_compute_unit -opencl_binary [get_opencl_binary mmult1] -kernel [get_kernels mmult] -name k4
 
 # Compile the design for CPU based emulation
 compile_emulation -flow cpu -opencl_binary [get_opencl_binary mmult1]
-
-# Run the compiled application in CPU based emulation mode
+#
+# # Run the compiled application in CPU based emulation mode
 run_emulation -flow cpu -args "mmult1.xclbin"
 
-# Run hardware simulation
-#compile_emulation -flow hardware -opencl_binary [get_opencl_binary mmult1]
-#run_emulation -flow cpu -args "mmult1.xclbin"
+# Compile the design for CPU based emulation
+compile_emulation -flow hardware -opencl_binary [get_opencl_binary mmult1]
+
+# Run the compiled application in CPU based emulation mode
+run_emulation -flow hardware -args "mmult1.xclbin"
 
 # Estimate resource utilization
-#report_estimate
+report_estimate
 
 # Compile the application to run on the accelerator card
 #build_system

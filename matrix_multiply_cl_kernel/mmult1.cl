@@ -3,9 +3,11 @@
 
 // Helper Functions
 void sparseMatrixMul(float* result, __local float* A, __local int* IA, __local int* JA, float* R) {
+//  __attribute__((opencl_unroll_hint))
   for(int i = 0; i < MATRIX_RANK; ++i) {
     result[i] = 0;
   }
+//  __attribute__((opencl_unroll_hint))
   for(int i = 0; i < MATRIX_RANK; ++i) {
     for(int k = IA[i]; k < IA[i+1]; ++k) {
       result[i] = result[i] + A[k] * R[JA[k]];
@@ -15,12 +17,14 @@ void sparseMatrixMul(float* result, __local float* A, __local int* IA, __local i
 }
 
 void vectorMul(float* result, float* V, float value) {
+//  __attribute__((opencl_unroll_hint))
   for(int i = 0; i < MATRIX_RANK; ++i) {
     result[i] = V[i]*value;
   }
 }
 
 void vectorAdd(__local float* rank_vector, float* V1, float* V2) {
+//  __attribute__((opencl_unroll_hint))
   for(int i = 0; i < MATRIX_RANK; ++i) {
     rank_vector[i] = V1[i] + V2[i];
   }
@@ -50,12 +54,15 @@ void pageRank(__local float* rank_vector, __local float* A, __local int* IA, __l
 
     // Error Calculation
     error = 0;
+
+ //   __attribute__((opencl_unroll_hint))
     for ( int i = 0; i < MATRIX_RANK; ++i ) {
       if ( (rank_vector[i] - row_vector[i]) < 0 )
         error += row_vector[i] - rank_vector[i];
       else
         error += rank_vector[i] - row_vector[i]; 
     }
+ //   __attribute__((opencl_unroll_hint))
     for ( int i = 0; i < MATRIX_RANK; ++i ){
       row_vector[i] = rank_vector[i];
     }
