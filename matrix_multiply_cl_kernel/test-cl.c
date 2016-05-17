@@ -420,95 +420,54 @@ int main(int argc, char** argv)
             return EXIT_FAILURE;
         }
 
-    // initialize the row vector
-    float row_vector [MATRIX_RANK];
-    for(int i = 0; i < MATRIX_RANK; ++i) {
-        row_vector[i] = 1/(float)MATRIX_RANK;
-    }
-
-    float output_err = 10000;
-    float threshold = 0.001;
-    for(int idx = 0; output_err > threshold; ++idx) {
-        /*------------------------Sparse Matrix Multiplication---------------------------------*/
-
-        // update output 
-        err = 0;
-        err = clEnqueueWriteBuffer(commands, output, CL_TRUE, 0, sizeof(float) * MATRIX_RANK, row_vector, 0, NULL, NULL);
-        if (err != CL_SUCCESS)
-        {
-            printf("Error: Failed to write to source array JA!\n");
-            printf("Test failed\n");
-            return EXIT_FAILURE;
-        }
-        // Set the arguments to our compute kernel
-        err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_A);
-        err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &input_IA);
-        err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &input_JA);
-        err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &output);
-        if (err != CL_SUCCESS)
+    
+    // Set the arguments to our compute kernel
+    //
+    err = 0;
+    err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_A);
+    err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &input_IA);
+    err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &input_JA);
+    err |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &output);
+    if (err != CL_SUCCESS)
         {
             printf("Error: Failed to set kernel arguments! %d\n", err);
             printf("Test failed\n");
             return EXIT_FAILURE;
         }
 
-        // Execute the kernel over the entire range of our 1d input data set
-        // using the maximum number of work group items for this device
+    // Execute the kernel over the entire range of our 1d input data set
+    // using the maximum number of work group items for this device
+    //
 
-        #ifdef C_KERNEL
-        err = clEnqueueTask(commands, kernel, 0, NULL, NULL);
-        #else
-        global[0] = MATRIX_RANK;
-        global[1] = 1;
-        local[0]  = MATRIX_RANK;
-        local[1]  = 1;
-        err = clEnqueueNDRangeKernel(commands, kernel, 2, NULL, 
-                                     (size_t*)&global, (size_t*)&local, 0, NULL, NULL);
-        #endif
-        if (err)
-            {
-                printf("Error: Failed to execute kernel! %d\n", err);
-                printf("Test failed\n");
-                return EXIT_FAILURE;
-            }
-
-        // Read back the results from the device to verify the output
-        //
-        cl_event readevent;
-        err = clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(float) * MATRIX_RANK, results, 0, NULL, &readevent );  
-        if (err != CL_SUCCESS)
-            {
-                printf("Error: Failed to read output array! %d\n", err);
-                printf("Test failed\n");
-                return EXIT_FAILURE;
-            }
-
-        clWaitForEvents(1, &readevent);
-        /*------------------------Sparse Matrix Multiplication---------------------------------*/
-
-        printf("results:\n");
-        for (i=0;i<MATRIX_RANK;i++) {
-            printf("%f ",results[i]);
+#ifdef C_KERNEL
+    err = clEnqueueTask(commands, kernel, 0, NULL, NULL);
+#else
+    global[0] = 1;
+    global[1] = 1;
+    local[0]  = 1;
+    local[1]  = 1;
+    err = clEnqueueNDRangeKernel(commands, kernel, 2, NULL, 
+                                 (size_t*)&global, (size_t*)&local, 0, NULL, NULL);
+#endif
+    if (err)
+        {
+            printf("Error: Failed to execute kernel! %d\n", err);
+            printf("Test failed\n");
+            return EXIT_FAILURE;
         }
-        printf("\n");
-        // after matrix multiplication result come out, continue calculating pagerank rankvector
-        float vector2[MATRIX_RANK];
-        float rank_vector[MATRIX_RANK];
-        vectorMul(vector2, row_vector, P_VALUE);
-        vectorAdd(rank_vector, results, vector2);
 
-        // Error Calculation
-        output_err = 0;
-        for ( int i = 0; i < MATRIX_RANK; ++i ) {
-          if ( (rank_vector[i] - row_vector[i]) < 0 )
-            output_err += row_vector[i] - rank_vector[i];
-          else
-            output_err += rank_vector[i] - row_vector[i]; 
+    // Read back the results from the device to verify the output
+    //
+    cl_event readevent;
+    err = clEnqueueReadBuffer( commands, output, CL_TRUE, 0, sizeof(float) * MATRIX_RANK, results, 0, NULL, &readevent );  
+    if (err != CL_SUCCESS)
+        {
+            printf("Error: Failed to read output array! %d\n", err);
+            printf("Test failed\n");
+            return EXIT_FAILURE;
         }
-        for ( int i = 0; i < MATRIX_RANK; ++i ){
-          row_vector[i] = rank_vector[i];
-        }
-    }
+
+    clWaitForEvents(1, &readevent);
     
     printf("A\n");
     for (i=0;i<A_SIZE;i++) {
