@@ -1,0 +1,76 @@
+SDAccel Profile Summary
+Generated on: 2016-05-17 17:03:16
+Profiled application: example_alpha.exe
+Target platform: Xilinx
+Target devices: fpga0-0
+Flow mode: System Run
+Tool version: 2015.4
+
+OpenCL API Calls
+API Name,Number Of Calls,Total Time (ms),Minimum Time (ms),Average Time (ms),Maximum Time (ms),
+clCreateContext,1,12911.2,12911.2,12911.2,12911.2,
+clCreateProgramWithBinary,1,129.628,129.628,129.628,129.628,
+clWaitForEvents,5,1.5369,0.001883,0.307379,1.40143,
+clEnqueueReadBuffer,1,1.50614,1.50614,1.50614,1.50614,
+clReleaseProgram,1,0.66271,0.66271,0.66271,0.66271,
+clEnqueueWriteBuffer,3,0.174035,0.026537,0.0580117,0.118209,
+clGetDeviceIDs,2,0.038607,0.001048,0.0193035,0.037559,
+clCreateBuffer,4,0.032636,0.003067,0.008159,0.021495,
+xclReleaseMemObject,4,0.030216,0.003094,0.007554,0.013153,
+clEnqueueNDRangeKernel,1,0.020988,0.020988,0.020988,0.020988,
+clGetPlatformIDs,2,0.019602,0.009707,0.009801,0.009895,
+clCreateKernel,1,0.009526,0.009526,0.009526,0.009526,
+clGetDeviceInfo,1,0.007173,0.007173,0.007173,0.007173,
+clGetPlatformInfo,1,0.007012,0.007012,0.007012,0.007012,
+clSetKernelArg,4,0.00565,0.001048,0.0014125,0.002207,
+clReleaseKernel,2,0.004861,0.001222,0.0024305,0.003639,
+clCreateCommandQueue,1,0.004594,0.004594,0.004594,0.004594,
+clBuildProgram,1,0.004522,0.004522,0.004522,0.004522,
+clReleaseContext,1,0.003853,0.003853,0.003853,0.003853,
+clReleaseCommandQueue,2,0.002917,0.000992,0.0014585,0.001925,
+
+
+Kernel Execution
+Kernel,Number Of Enqueues,Total Time (ms),Minimum Time (ms),Average Time (ms),Maximum Time (ms),
+mmult,1,1.12773,1.12773,1.12773,1.12773,
+
+
+Compute Unit Utilization
+Device,Compute Unit,Kernel,Global Work Size,Local Work Size,Number Of Calls,Total Time (ms),Minimum Time (ms),Average Time (ms),Maximum Time (ms),
+fpga0-0,k1,mmult,1:1:1,1:1:1,1,1.11088,1.11088,1.11088,1.11088,
+
+
+Data Transfer: Host and Global Memory
+Context:Number of Devices,Transfer Type,Number Of Transfers,Transfer Rate (MB/s),Average Bandwidth Utilization (%),Average Size (KB),Total Time (ms),Average Time (ms),
+context840500504:1,READ,1,3.70226,0.0740453,0.2,0.054021,0.054021,
+context840500504:1,WRITE,3,22.3135,0.446269,0.404,0.054317,0.0181057,
+
+
+Data Transfer: Kernels and Global Memory
+Device,Transfer Type,Number Of Transfers,Transfer Rate (MB/s),Average Bandwidth Utilization (%),Average Size (KB),Average Time (ns),
+fpga0-0,READ,20,1.58903,0.0248236,0.0896,328.25,
+fpga0-0,WRITE,4,0.177347,0.00277049,0.05,72.5,
+
+
+Top Data Transfer: Kernels and Global Memory
+Device,Kernel Name,Number of Transfers,Average Bytes per Transfer,Transfer Efficiency (%),Total Data Transfer (MB),Total Write (MB),Total Read (MB),Transfer Rate (MB/s),Average Bandwidth Utilization (%),
+fpga0-0,ALL,24,83,2.02637,0.001992,0.0002,0.001792,0.883188,0.013797,
+
+
+Top Kernel Execution
+Kernel Instance Address,Kernel,Context ID,Command Queue ID,Device Name,Start Time (ms),Duration (ms),Global Work Size,Local Work Size,
+18977568,mmult,840500504,0,fpga0-0,13044.9,1.12773,1:1:1,1:1:1,
+
+
+Top Buffer Writes
+Buffer Address,Context ID,Command Queue ID,Start Time (ms),Duration (ms),Buffer Size (KB),Writing Rate(MB/s),
+19022352,840500504,0,13044.4,0.042547,0.504,11.8457,
+19025040,840500504,0,13044.5,0.005917,0.204,34.4769,
+19025408,840500504,0,13044.5,0.005853,0.504,86.1097,
+
+
+Top Buffer Reads
+Buffer Address,Context ID,Command Queue ID,Start Time (ms),Duration (ms),Buffer Size (KB),Reading Rate(MB/s),
+19027248,840500504,0,13046,0.054021,0.2,3.70226,
+
+
