@@ -62,6 +62,7 @@ create_compute_unit -opencl_binary [get_opencl_binary mmult1] -kernel [get_kerne
 create_compute_unit -opencl_binary [get_opencl_binary mmult1] -kernel [get_kernels mmult] -name k2
 create_compute_unit -opencl_binary [get_opencl_binary mmult1] -kernel [get_kernels mmult] -name k3
 create_compute_unit -opencl_binary [get_opencl_binary mmult1] -kernel [get_kernels mmult] -name k4
+create_compute_unit -opencl_binary [get_opencl_binary mmult1] -kernel [get_kernels mmult] -name k5
 
 # Compile the design for CPU based emulation
 compile_emulation -flow cpu -opencl_binary [get_opencl_binary mmult1]
@@ -70,19 +71,19 @@ compile_emulation -flow cpu -opencl_binary [get_opencl_binary mmult1]
 run_emulation -flow cpu -args "mmult1.xclbin"
 
 # Compile the design for CPU based emulation
-compile_emulation -flow hardware -opencl_binary [get_opencl_binary mmult1]
+#compile_emulation -flow hardware -opencl_binary [get_opencl_binary mmult1]
 
 # Run the compiled application in CPU based emulation mode
-run_emulation -flow hardware -args "mmult1.xclbin"
+#run_emulation -flow hardware -args "mmult1.xclbin"
 
 # Estimate resource utilization
-report_estimate
+#report_estimate
 
 # Compile the application to run on the accelerator card
-#build_system
+build_system
 
 # Package the application binaries
-#package_system
+package_system
 
 
 # XSIP watermark, do not delete 67d7842dbbe25473c3c32b93c0da8047785f30d78e8a024de1b57352245f9689
