@@ -1,6 +1,6 @@
 FLAGS = -std=c99
 
-all: mm sparseMatrix
+all: sparseMatrix
 
 # Compile & run digitrec implementation
 mm: mmult1_native.c
@@ -12,3 +12,4 @@ mm: mmult1_native.c
 sparseMatrix: genSparseMatrix.cpp
 	@echo "Compiling & executing the sparse matrix program ..."
 	g++ genSparseMatrix.cpp -o genSparseMatrix
+	./genSparseMatrix data/graph_small.dat
