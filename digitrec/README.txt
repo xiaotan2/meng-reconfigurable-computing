@@ -1,6 +1,6 @@
 #====================================================================
 #
-# ECE 5775 Final Project
+# MEng Project
 # MapReduce on FPGA: Accelerator for KNN Digit Recognition Algorithm
 # 
 # Instructor: Professor Zhang Zhiru 
